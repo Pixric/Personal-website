@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>后台管理</title>
+<link rel="stylesheet" href="/assets/backstage.css" />
+</head>
+<body>
+
+<!-- ============ 初始化向导 / 登录 ============ -->
+<div class="gate" id="gate">
+  <div class="gate-card card glass strong">
+
+    <!-- 步骤 0：设置安全入口 -->
+    <section class="step" id="stepEntry" hidden>
+      <div class="step-badge">第 1 步 / 共 3 步</div>
+      <h1>设置安全入口</h1>
+      <p class="step-desc">
+        安全入口就是你以后登录后台的地址。设置好之后，只有访问
+        <code id="entryPreview">你的域名/<b>安全入口</b></code>
+        才能看到这个登录页，其他人访问域名只会看到你的个人主页。
+      </p>
+
+      <label class="field">
+        <span class="field-label">安全入口</span>
+        <input id="entryInput" type="text" autocomplete="off" spellcheck="false"
+               placeholder="例如 backstage2024" maxlength="64" />
+        <span class="field-hint">至少 5 位，只能包含字母、数字、下划线、中划线。请务必记住，忘记后只能重装数据库。</span>
+      </label>
+
+      <div class="step-actions">
+        <button class="btn primary" id="entrySubmit" type="button">下一步</button>
+      </div>
+      <p class="msg" id="entryMsg"></p>
+    </section>
+
+    <!-- 步骤 1：注册管理员 -->
+    <section class="step" id="stepAdmin" hidden>
+      <div class="step-badge">第 2 步 / 共 3 步</div>
+      <h1>注册管理员</h1>
+      <p class="step-desc">账号和密码会用 <b>PBKDF2 哈希</b> 保存，数据库里看不到明文。</p>
+
+      <label class="field">
+        <span class="field-label">管理员账号</span>
+        <input id="adminUser" type="text" autocomplete="username" spellcheck="false"
+               placeholder="至少 3 位" maxlength="32" />
+        <span class="field-hint">至少 3 位，支持字母、数字及 _ . @ -</span>
+      </label>
+
+      <label class="field">
+        <span class="field-label">密码</span>
+        <input id="adminPass" type="password" autocomplete="new-password"
+               placeholder="至少 6 位" maxlength="128" />
+        <span class="field-hint">至少 6 位</span>
+      </label>
+
+      <label class="field">
+        <span class="field-label">确认密码</span>
+        <input id="adminPass2" type="password" autocomplete="new-password"
+               placeholder="再输入一次" maxlength="128" />
+      </label>
+
+      <div class="step-actions">
+        <button class="btn ghost" id="adminBack" type="button">上一步</button>
+        <button class="btn primary" id="adminSubmit" type="button">完成注册</button>
+      </div>
+      <p class="msg" id="adminMsg"></p>
+    </section>
+
+    <!-- 步骤 2：一切完成 -->
+    <section class="step done-step" id="stepDone" hidden>
+      <div class="done-check">
+        <svg viewBox="0 0 52 52" aria-hidden="true">
+          <circle class="done-circle" cx="26" cy="26" r="23" fill="none" />
+          <path class="done-tick" fill="none" d="M15 27l7.5 7.5L37 20" />
+        </svg>
+      </div>
+      <h1 class="done-text">一切完成</h1>
+      <p class="step-desc" id="doneDesc"></p>
+    </section>
+
+    <!-- 登录 -->
+    <section class="step" id="stepLogin" hidden>
+      <h1>登录后台</h1>
+      <p class="step-desc">请输入管理员账号和密码。</p>
+
+      <label class="field">
+        <span class="field-label">账号</span>
+        <input id="loginUser" type="text" autocomplete="username" spellcheck="false" />
+      </label>
+
+      <label class="field">
+        <span class="field-label">密码</span>
+        <input id="loginPass" type="password" autocomplete="current-password" />
+      </label>
+
+      <div class="step-actions">
+        <button class="btn primary" id="loginSubmit" type="button">登录</button>
+      </div>
+      <p class="msg" id="loginMsg"></p>
+    </section>
+
+  </div>
+</div>
+
+<!-- ============ 后台主界面 ============ -->
+<div class="admin" id="admin" hidden>
+
+  <aside class="side">
+    <div class="side-brand">
+      <div class="side-logo">后</div>
+      <div class="side-brand-text">
+        <b>个人官网后台</b>
+        <span id="sideUser">—</span>
+      </div>
+    </div>
+
+    <nav class="side-nav" id="sideNav">
+      <button class="nav-item active" data-view="profile" type="button">
+        <span class="ni-dot"></span>关于我
+      </button>
+      <button class="nav-item" data-view="appearance" type="button">
+        <span class="ni-dot"></span>外观与动画
+      </button>
+      <button class="nav-item" data-view="music" type="button">
+        <span class="ni-dot"></span>音乐
+      </button>
+      <button class="nav-item" data-view="socials" type="button">
+        <span class="ni-dot"></span>社交链接
+      </button>
+      <button class="nav-item" data-view="github" type="button">
+        <span class="ni-dot"></span>GitHub
+      </button>
+      <button class="nav-item" data-view="footer" type="button">
+        <span class="ni-dot"></span>页脚 / 备案
+      </button>
+      <button class="nav-item" data-view="security" type="button">
+        <span class="ni-dot"></span>安全与账号
+      </button>
+    </nav>
+
+    <div class="side-foot">
+      <a class="side-link" id="viewSite" href="/" target="_blank" rel="noopener">查看网站 ↗</a>
+      <button class="btn ghost small" id="logoutBtn" type="button">退出登录</button>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+
+    <!-- 未绑定 R2 时的提示条 -->
+    <div class="banner" id="storageBanner" hidden>
+      <b>还不能上传图片和音乐</b>
+      <span>
+        因为还没有开通文件存储（R2）。网站其他功能都正常，只差这一步。
+        在 Cloudflare 控制台进入
+        <b>Workers &amp; Pages → 你的 Worker → Settings → Bindings</b>，
+        添加一个 <b>R2 bucket</b> 绑定，变量名填 <code>BUCKET</code>，
+        然后刷新本页即可。
+      </span>
+    </div>
+
+    <!-- ---------- 关于我 ---------- -->
+    <section class="view" id="view-profile">
+      <header class="view-head">
+        <h2>关于我</h2>
+        <p>这里的内容会显示在网站首页。</p>
+      </header>
+
+      <div class="grid-2">
+        <div class="panel">
+          <h3>头像</h3>
+          <div class="avatar-row">
+            <div class="avatar-preview" id="avatarPreview"></div>
+            <div class="avatar-actions">
+              <input type="file" id="avatarFile" accept="image/*" hidden />
+              <button class="btn" id="avatarPick" type="button">上传头像</button>
+              <button class="btn ghost small" id="avatarClear" type="button">移除</button>
+              <span class="field-hint">建议正方形，会自动裁成圆形展示。</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>背景图</h3>
+          <div class="bg-preview" id="bgPreview"></div>
+          <div class="row gap">
+            <input type="file" id="bgFile" accept="image/*" hidden />
+            <button class="btn" id="bgPick" type="button">上传背景图</button>
+            <button class="btn ghost small" id="bgClear" type="button">移除</button>
+          </div>
+          <span class="field-hint">建议横向大图（1920×1080 以上）。未上传时使用内置渐变背景。</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>基本信息</h3>
+
+        <label class="field">
+          <span class="field-label">网站名称 / 名字</span>
+          <input id="fSiteName" type="text" maxlength="60" placeholder="显示在顶栏和侧栏" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">副标题 / 用户名</span>
+          <input id="fNickname" type="text" maxlength="60" placeholder="显示在名字下方的小字" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">关于我</span>
+          <textarea id="fAbout" rows="6" maxlength="2000" placeholder="介绍一下你自己…"></textarea>
+        </label>
+
+        <div class="row">
+          <button class="btn primary" id="saveProfile" type="button">保存</button>
+          <span class="msg inline" id="profileMsg"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- 外观与动画 ---------- -->
+    <section class="view" id="view-appearance" hidden>
+      <header class="view-head">
+        <h2>外观与动画</h2>
+        <p>每一项都可以单独开关，关闭后前台立即生效。</p>
+      </header>
+
+      <div class="panel">
+        <h3>动画开关</h3>
+        <div class="switch-list" id="animSwitches">
+          <label class="switch-row">
+            <span>
+              <b>网站打开时的开场效果</b>
+              <em>进入页面时的高斯模糊淡入 + 轻微缩放</em>
+            </span>
+            <input type="checkbox" data-anim="anim_intro" />
+          </label>
+          <label class="switch-row">
+            <span>
+              <b>背景视差移动与缩放</b>
+              <em>滚动时背景缓慢跟随，滚动时轻微放大</em>
+            </span>
+            <input type="checkbox" data-anim="anim_bg" />
+          </label>
+          <label class="switch-row">
+            <span>
+              <b>内容滚动入场</b>
+              <em>卡片进入视口时淡入上浮</em>
+            </span>
+            <input type="checkbox" data-anim="anim_reveal" />
+          </label>
+          <label class="switch-row">
+            <span>
+              <b>头像悬停微动效</b>
+              <em>鼠标移上去轻微放大并旋转</em>
+            </span>
+            <input type="checkbox" data-anim="anim_avatar" />
+          </label>
+          <label class="switch-row">
+            <span>
+              <b>播放器入场与呼吸效果</b>
+              <em>右下角播放器出现时的动画，播放中轻微呼吸</em>
+            </span>
+            <input type="checkbox" data-anim="anim_player" />
+          </label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>音乐播放</h3>
+        <label class="switch-row">
+          <span>
+            <b>启用音乐功能</b>
+            <em>关闭后前台完全不会出现播放器</em>
+          </span>
+          <input type="checkbox" id="musicEnabled" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">播放顺序</span>
+          <select id="musicMode">
+            <option value="default">默认顺序（按下方列表顺序播放）</option>
+            <option value="random">随机顺序</option>
+          </select>
+        </label>
+
+        <div class="row">
+          <button class="btn primary" id="saveAppearance" type="button">保存</button>
+          <span class="msg inline" id="appearanceMsg"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>电报频道</h3>
+        <label class="switch-row">
+          <span>
+            <b>显示「加入我的频道」卡片</b>
+            <em>默认链接到 https://t.me/COASCN</em>
+          </span>
+          <input type="checkbox" id="tgEnabled" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">标题</span>
+          <input id="tgTitle" type="text" maxlength="60" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">下方灰色小字</span>
+          <input id="tgSub" type="text" maxlength="100" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">跳转链接</span>
+          <input id="tgUrl" type="url" placeholder="https://t.me/COASCN" />
+        </label>
+
+        <div class="row">
+          <button class="btn primary" id="saveTg" type="button">保存</button>
+          <span class="msg inline" id="tgMsg"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- 音乐 ---------- -->
+    <section class="view" id="view-music" hidden>
+      <header class="view-head">
+        <h2>音乐</h2>
+        <p>上传的音乐会由 Cloudflare R2 存储。单文件最大 96MB，最多 50 首。</p>
+      </header>
+
+      <div class="panel">
+        <h3>上传音乐</h3>
+        <div class="drop" id="trackDrop">
+          <input type="file" id="trackFile" accept="audio/*" multiple hidden />
+          <b>点击选择音频文件，或拖拽到这里</b>
+          <span>支持 mp3 / m4a / wav / flac / ogg 等，可多选</span>
+        </div>
+        <div class="progress" id="trackProgress" hidden>
+          <div class="progress-bar"><span id="trackProgressBar"></span></div>
+          <span class="progress-text" id="trackProgressText"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>音乐列表 <span class="count" id="trackCount"></span></h3>
+        <div class="track-list" id="trackList"></div>
+        <p class="field-hint">拖动左侧手柄可以调整顺序（默认顺序播放时按这个顺序）。</p>
+      </div>
+    </section>
+
+    <!-- ---------- 社交链接 ---------- -->
+    <section class="view" id="view-socials" hidden>
+      <header class="view-head">
+        <h2>社交链接</h2>
+        <p>显示在顶栏和左侧。建议最多 5 个，加多了页面会显得拥挤（不强制限制）。</p>
+      </header>
+
+      <div class="panel">
+        <h3>添加链接</h3>
+        <div class="grid-2">
+          <label class="field">
+            <span class="field-label">显示名称</span>
+            <input id="socLabel" type="text" maxlength="40" placeholder="例如 X / 电报 / 邮箱" />
+          </label>
+          <label class="field">
+            <span class="field-label">链接地址</span>
+            <input id="socUrl" type="url" placeholder="https://..." />
+          </label>
+        </div>
+
+        <div class="field">
+          <span class="field-label">图标</span>
+          <div class="icon-picker" id="iconPicker"></div>
+        </div>
+
+        <div class="row">
+          <input type="file" id="socIconFile" accept="image/*" hidden />
+          <button class="btn ghost small" id="socIconPick" type="button">或上传自定义图标</button>
+          <span class="field-hint" id="socIconHint">未选择时使用内置图标</span>
+        </div>
+
+        <div class="row">
+          <button class="btn primary" id="socAdd" type="button">添加</button>
+          <span class="msg inline" id="socMsg"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>已有链接</h3>
+        <div class="social-list-admin" id="socialListAdmin"></div>
+      </div>
+    </section>
+
+    <!-- ---------- GitHub ---------- -->
+    <section class="view" id="view-github" hidden>
+      <header class="view-head">
+        <h2>GitHub</h2>
+        <p>填写你的 GitHub 用户名，网站就会自动展示你的仓库和贡献图。</p>
+      </header>
+
+      <div class="panel">
+        <label class="field">
+          <span class="field-label">GitHub 用户名</span>
+          <input id="fGithubUser" type="text" maxlength="60" spellcheck="false" placeholder="例如 Pixric" />
+          <span class="field-hint">就是主页地址 github.com/<b>这里</b> 的那一段，不需要填写完整网址。</span>
+        </label>
+
+        <label class="switch-row">
+          <span>
+            <b>展示开源项目卡片</b>
+            <em>读取公开仓库，显示名称、简介、语言和星标数</em>
+          </span>
+          <input type="checkbox" id="ghShowRepos" />
+        </label>
+
+        <label class="switch-row">
+          <span>
+            <b>展示贡献图</b>
+            <em>显示 GitHub 贡献热力图</em>
+          </span>
+          <input type="checkbox" id="ghShowChart" />
+        </label>
+
+        <div class="row">
+          <button class="btn primary" id="saveGithub" type="button">保存</button>
+          <a class="btn ghost small" id="ghLink" href="#" target="_blank" rel="noopener" hidden>打开我的 GitHub ↗</a>
+          <span class="msg inline" id="githubMsg"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- 页脚 ---------- -->
+    <section class="view" id="view-footer" hidden>
+      <header class="view-head">
+        <h2>页脚 / 备案</h2>
+        <p>这段文字会显示在网站最下方，适合放备案号、版权信息等。</p>
+      </header>
+
+      <div class="panel">
+        <label class="field">
+          <span class="field-label">显示文字</span>
+          <input id="fFooterText" type="text" maxlength="200" placeholder="例如 京ICP备00000000号-1" />
+          <span class="field-hint">留空则不显示页脚。</span>
+        </label>
+
+        <label class="field">
+          <span class="field-label">点击跳转链接（可选）</span>
+          <input id="fFooterLink" type="url" placeholder="https://beian.miit.gov.cn/" />
+        </label>
+
+        <div class="grid-2">
+          <label class="field">
+            <span class="field-label">文字颜色</span>
+            <div class="row gap">
+              <input id="fFooterColor" type="color" class="color-input" value="#8a8a8e" />
+              <input id="fFooterColorText" type="text" maxlength="9" placeholder="#8a8a8e" />
+            </div>
+          </label>
+
+          <label class="field">
+            <span class="field-label">透明度 <b id="footerOpacityVal">55%</b></span>
+            <input id="fFooterOpacity" type="range" min="0" max="1" step="0.01" value="0.55" />
+            <span class="field-hint">数值越小越淡，100% 为完全不透明。</span>
+          </label>
+        </div>
+
+        <div class="footer-preview" id="footerPreview"></div>
+
+        <div class="row">
+          <button class="btn primary" id="saveFooter" type="button">保存</button>
+          <span class="msg inline" id="footerMsg"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- 安全与账号 ---------- -->
+    <section class="view" id="view-security" hidden>
+      <header class="view-head">
+        <h2>安全与账号</h2>
+        <p>修改登录地址和账号密码。改完请务必记牢。</p>
+      </header>
+
+      <div class="panel">
+        <h3>安全入口</h3>
+        <label class="field">
+          <span class="field-label">当前访问地址</span>
+          <input id="fEntry" type="text" maxlength="64" spellcheck="false" />
+          <span class="field-hint" id="entryHint"></span>
+        </label>
+        <div class="row">
+          <button class="btn primary" id="saveEntry" type="button">更新安全入口</button>
+          <span class="msg inline" id="entryMsg"></span>
+        </div>
+        <div class="warn">
+          修改后，旧地址会立刻失效，请用新地址重新登录后台。忘记安全入口只能重置数据库。
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>修改账号密码</h3>
+        <label class="field">
+          <span class="field-label">当前密码</span>
+          <input id="curPass" type="password" autocomplete="current-password" />
+        </label>
+        <div class="grid-2">
+          <label class="field">
+            <span class="field-label">新账号（可选）</span>
+            <input id="newUser" type="text" autocomplete="username" maxlength="32" />
+          </label>
+          <label class="field">
+            <span class="field-label">新密码（可选）</span>
+            <input id="newPass" type="password" autocomplete="new-password" maxlength="128" />
+          </label>
+        </div>
+        <label class="field">
+          <span class="field-label">确认新密码</span>
+          <input id="newPass2" type="password" autocomplete="new-password" maxlength="128" />
+        </label>
+        <div class="row">
+          <button class="btn primary" id="saveCreds" type="button">保存修改</button>
+          <span class="msg inline" id="credsMsg"></span>
+        </div>
+        <div class="warn">
+          密码使用 PBKDF2-HMAC-SHA256（12 万次迭代）加盐哈希存储，数据库里没有明文。修改密码后其他设备的登录会失效。
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>存储占用</h3>
+        <p class="field-hint" id="storageInfo">—</p>
+        <div class="row">
+          <input id="wipeConfirm" type="text" placeholder="输入 DELETE 以确认" />
+          <button class="btn danger" id="wipeBtn" type="button">清空全部上传</button>
+        </div>
+        <p class="field-hint">会删除所有音乐、头像、背景图和自定义图标，此操作不可撤销。</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="/assets/icons.js"></script>
+<script src="/assets/backstage.js"></script>
+</body>
+</html>
