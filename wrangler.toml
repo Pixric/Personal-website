@@ -2,8 +2,9 @@ name = "grwz"
 main = "src/worker.js"
 compatibility_date = "2024-11-06"
 
-# Workers 请求体上限为 100MB，音乐上传按 96MB 设计以留出表单开销
-limits = { cpu_ms = 30000 }
+# 注意：不要在这里设置 limits.cpu_ms。
+# 免费版不支持自定义 CPU 限制，设了会报错 100328 导致部署失败。
+# 免费版默认给 10ms CPU 时间，本项目完全够用。
 
 [assets]
 directory = "./public"
