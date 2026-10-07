@@ -1,0 +1,58 @@
+name = "grwz"
+main = "src/worker.js"
+compatibility_date = "2024-11-06"
+
+# Workers 请求体上限为 100MB，音乐上传按 96MB 设计以留出表单开销
+limits = { cpu_ms = 30000 }
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+# ============================================================
+#  数据库（D1）
+# ============================================================
+# 【首次部署请注意】
+# 下面的 database_id 是占位符，直接部署会失败。
+# 两种填法，任选其一：
+#
+#   A. 想省事（推荐，纯网页）：
+#      把 database_id 这一行整行删掉，并在 Cloudflare 控制台
+#      给这个 Worker 添加 D1 绑定（Settings → Bindings → D1 database）。
+#
+#   B. 有电脑：
+#      执行 `npx wrangler d1 create grwz-db`，
+#      把输出里的 database_id 复制到下面。
+#
+[[d1_databases]]
+binding = "DB"
+database_name = "grwz-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+# ============================================================
+#  文件存储（R2）
+# ============================================================
+# R2 必须先在控制台手动开通（要绑卡验证身份），代码没法自动创建。
+# 因此这里默认「注释掉」，保证第一次部署一定能成功。
+#
+# 等你在控制台创建好存储桶、并给 Worker 添加 R2 绑定之后，
+# 再取消下面的注释（或者干脆不管它，绑定在控制台加也一样生效）。
+#
+# 没有 R2 时：网站、后台、改文字、改动画全部正常，
+#            只是不能上传头像 / 背景图 / 音乐。
+#
+# [[r2_buckets]]
+# binding = "BUCKET"
+# bucket_name = "grwz-assets"
+
+# 自定义域名（可选）
+# routes = [
+#   { pattern = "me.example.com", custom_domain = true }
+# ]
+
+[vars]
+DEV_MODE = "false"
+
+[observability]
+enabled = true
