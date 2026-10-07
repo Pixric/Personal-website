@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#e9e2e6" />
+<title>加载中…</title>
+<meta name="description" id="metaDesc" content="" />
+<link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body>
+
+  <div class="boot" id="boot"><div class="boot-spin"></div></div>
+
+  <div class="bg" id="bg"></div>
+  <div class="bg-veil"></div>
+
+  <!-- 未初始化时的占位（初始化完成后不再显示） -->
+  <div class="not-ready card glass strong not-ready-box" id="notReady" hidden>
+    <h1>网站还在准备中</h1>
+    <p>管理员还没有完成初始化。</p>
+    <p>请访问 <code>/backstage</code> 完成设置。</p>
+  </div>
+
+  <div class="page" id="page" hidden>
+
+    <header class="navbar card glass" id="navbar">
+      <div class="nav-left">
+        <img class="nav-avatar" id="navAvatar" alt="" hidden />
+        <div class="nav-avatar-fallback" id="navAvatarFallback" hidden></div>
+        <span class="nav-name" id="navName"></span>
+      </div>
+      <div class="nav-right" id="navSocials"></div>
+    </header>
+
+    <div class="layout">
+
+      <aside class="sidebar card glass strong reveal" id="sidebar">
+        <div class="avatar-wrap anim-avatar" id="avatarWrap">
+          <img class="avatar" id="avatar" alt="" hidden />
+          <div class="avatar-fallback" id="avatarFallback" hidden></div>
+        </div>
+        <h1 class="name" id="name"></h1>
+        <p class="username" id="username"></p>
+        <p class="bio-quote" id="bioQuote" hidden></p>
+
+        <div class="social-list" id="socialList"></div>
+      </aside>
+
+      <section class="content">
+
+        <div class="card glass about reveal" id="aboutCard">
+          <h2 class="section-title">关于我</h2>
+          <p class="about-text" id="aboutText"></p>
+        </div>
+
+        <a class="card glass tg-card reveal" id="tgCard" href="https://t.me/COASCN" target="_blank" rel="noopener" hidden>
+          <span class="tg-title">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.5 3.5 2.6 10.9c-1.2.5-1.2 1.2-.2 1.5l4.8 1.5 1.8 5.6c.2.6.4.8.9.8.5 0 .7-.2 1-.5l2.4-2.3 5 3.6c.9.5 1.5.2 1.7-.9l3.1-14.6c.3-1.3-.5-1.9-1.6-1.5Zm-4.1 3.8L8.8 13.9l-.3 3.3-1.4-4.4 10.3-5.5Z"/></svg>
+            <span id="tgTitle">加入我的频道</span>
+          </span>
+          <span class="tg-sub" id="tgSub">加入就是最大的帮助</span>
+        </a>
+
+        <div class="card glass projects reveal" id="projectsCard" hidden>
+          <h2 class="section-title">持有的开源项目</h2>
+          <div id="repoStatus" class="projects-status">正在加载项目…</div>
+          <div class="repo-grid" id="repoGrid"></div>
+        </div>
+
+        <div class="card glass contribution reveal" id="contribCard" hidden>
+          <h2 class="section-title">GitHub Contribution</h2>
+          <div class="contribution-wrap">
+            <img id="contribImg" alt="GitHub 贡献图" />
+          </div>
+        </div>
+
+      </section>
+    </div>
+
+    <footer class="site-footer" id="siteFooter" hidden></footer>
+  </div>
+
+  <div class="player glass strong" id="player" hidden>
+    <div class="player-main" id="playerMain">
+      <div class="art-wrap">
+        <svg class="progress-ring" viewBox="0 0 50 50">
+          <circle class="ring-bg" cx="25" cy="25" r="21" />
+          <circle class="ring-fg" id="ringFg" cx="25" cy="25" r="21" />
+        </svg>
+        <img class="player-art" id="playerArt" alt="" hidden />
+        <div class="player-art" id="playerArtFallback"></div>
+      </div>
+      <div class="player-text">
+        <div class="player-title" id="playerTitle">—</div>
+        <div class="player-hint" id="playerHint">点击播放</div>
+      </div>
+      <button class="player-toggle glass" id="playerToggle" aria-label="播放/暂停" type="button">
+        <svg id="iconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>
+        <svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button class="player-chevron" id="playerChevron" aria-label="展开播放进度" type="button">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 15.5 5 8.5l1.4-1.4L12 12.7l5.6-5.6L19 8.5z"/></svg>
+      </button>
+    </div>
+    <div class="player-expand">
+      <div class="seek-row">
+        <span class="seek-time" id="timeCurrent">0:00</span>
+        <input type="range" class="seek-bar" id="seekBar" min="0" max="100" value="0" step="0.1" />
+        <span class="seek-time" id="timeTotal">0:00</span>
+      </div>
+    </div>
+  </div>
+
+  <audio id="audio" preload="auto"></audio>
+
+  <script src="/assets/icons.js"></script>
+  <script src="/assets/app.js"></script>
+</body>
+</html>
