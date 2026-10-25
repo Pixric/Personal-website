@@ -230,10 +230,26 @@ function assetUrl(key) {
 function normalizeUrl(raw) {
   const v = String(raw || '').trim();
   if (!v) return { ok: false, error: '请填写链接地址' };
+
   if (/^https?:\/\/.+/i.test(v)) return { ok: true, value: v, auto: false };
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(v)) {
-    return { ok: false, error: '只支持 http:// 或 https:// 链接' };
+
+  const mailto = /^mailto:\s*(.+)$/i.exec(v);
+  if (mailto) {
+    const addr = mailto[1].trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr)) {
+      return { ok: false, error: '邮箱地址格式不正确' };
+    }
+    return { ok: true, value: 'mailto:' + addr, auto: false };
   }
+
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(v)) {
+    return { ok: false, error: '只支持 http(s) 链接或 mailto: 邮箱' };
+  }
+
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+    return { ok: true, value: 'mailto:' + v, auto: true };
+  }
+
   const cleaned = v.replace(/^\/+/, '');
   if (!cleaned) return { ok: false, error: '请填写链接地址' };
   return { ok: true, value: 'https://' + cleaned, auto: true };

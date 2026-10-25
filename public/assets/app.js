@@ -159,11 +159,16 @@
     }
 
     socials.forEach(function (item) {
+      var isMail = /^mailto:/i.test(item.url);
+      var isApp = isMail || /^(tel|sms):/i.test(item.url);
+
       var a = document.createElement('a');
       a.className = 'icon-btn';
       a.href = item.url;
-      a.target = '_blank';
-      a.rel = 'noopener';
+      if (!isApp) {
+        a.target = '_blank';
+        a.rel = 'noopener';
+      }
       a.setAttribute('aria-label', item.label);
       a.title = item.label;
       a.innerHTML = socialIconMarkup(item);
@@ -172,8 +177,10 @@
       var b = document.createElement('a');
       b.className = 'social-btn';
       b.href = item.url;
-      b.target = '_blank';
-      b.rel = 'noopener';
+      if (!isApp) {
+        b.target = '_blank';
+        b.rel = 'noopener';
+      }
       b.innerHTML = socialIconMarkup(item) + '<span>' + esc(item.label) + '</span>';
       list.appendChild(b);
     });

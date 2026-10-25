@@ -977,6 +977,9 @@
     if (!label) { msg(el, '请填写显示名称', 'error'); return; }
     if (!url) { msg(el, '请填写链接地址', 'error'); return; }
 
+    var isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(url);
+    if (isEmail) url = 'mailto:' + url;
+
     btn.disabled = true;
     msg(el, '添加中…');
 
@@ -994,7 +997,10 @@
       $('socUrl').value = '';
       pendingIconKey = '';
       $('socIconHint').textContent = '未选择时使用内置图标';
-      if (res.auto_fixed) toast('链接已自动补全为 ' + res.url, 'info', '已补全 https://');
+      if (res.auto_fixed) {
+        if (/^mailto:/i.test(res.url)) toast('已识别为邮箱：' + res.url.replace(/^mailto:/, ''), 'info', '点击将打开邮件应用');
+        else toast('链接已自动补全为 ' + res.url, 'info', '已补全 https://');
+      }
       if (res.hint) toast(res.hint, 'info');
       else toast('已添加', 'success');
       loadState();
