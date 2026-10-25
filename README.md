@@ -1,8 +1,8 @@
-# Coastline
+# Personal-website
 
 > 一个零依赖、自托管个人官网系统，内置管理后台。
 
-Coastline 是一个用于搭建个人主页的轻量级 Web 应用。它提供前台展示页面与可视化后台管理，
+Personal-website 是一个用于搭建个人主页的轻量级 Web 应用。它提供前台展示页面与可视化后台管理，
 所有内容均可通过浏览器配置，无需修改代码。
 
 系统基于 Node.js 原生模块实现，不依赖任何第三方包，也不需要数据库或对象存储服务。
@@ -64,11 +64,11 @@ node server.js
 启动成功后终端输出：
 
 ```
-  Coastline 已启动
+  Personal-website 已启动
   ----------------------------------
   前台:    http://localhost:3000/
   后台:    http://localhost:3000/backstage
-  数据:    /path/to/coastline/data
+  数据:    /path/to/personal-website/data
 ```
 
 ### 初始化
@@ -98,17 +98,17 @@ $env:PORT="8080"; node server.js
 
 ### systemd 常驻运行
 
-创建 `/etc/systemd/system/coastline.service`：
+创建 `/etc/systemd/system/personal-website.service`：
 
 ```ini
 [Unit]
-Description=Coastline Personal Website
+Description=Personal-website
 After=network.target
 
 [Service]
 Type=simple
 User=www
-WorkingDirectory=/var/www/coastline
+WorkingDirectory=/var/www/personal-website
 ExecStart=/usr/bin/node server.js
 Environment=PORT=3000
 Restart=always
@@ -122,8 +122,8 @@ WantedBy=multi-user.target
 
 ```bash
 systemctl daemon-reload
-systemctl enable --now coastline
-journalctl -u coastline -f
+systemctl enable --now personal-website
+journalctl -u personal-website -f
 ```
 
 ### Nginx 反向代理
@@ -248,7 +248,7 @@ tar czf backup-$(date +%F).tar.gz data/
 ## 目录结构
 
 ```
-coastline/
+personal-website/
 ├── server.js          服务主程序（路由与接口）
 ├── package.json
 ├── README.md

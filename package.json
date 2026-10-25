@@ -4,7 +4,13 @@
   "description": "零依赖的个人官网系统，自带后台管理、音乐播放器、社交链接和 GitHub 展示",
   "type": "module",
   "license": "MIT",
-  "author": "Coastline",
+  "author": "Coas",
+  "contributors": [
+    {
+      "name": "DeepSeek",
+      "role": "辅助开发"
+    }
+  ],
   "keywords": [
     "personal-website",
     "homepage",
