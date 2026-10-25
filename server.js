@@ -78,7 +78,7 @@ function parseCookies(req) {
 }
 
 function currentAdmin(req) {
-  const token = parseCookies(req).grwz_session;
+  const token = parseCookies(req).coastline_session;
   if (!token) return null;
   const sess = store.findSession(token);
   if (!sess) return null;
@@ -100,11 +100,11 @@ function createSession(adminId, req) {
 }
 
 function sessionCookie(token, maxAge) {
-  return 'grwz_session=' + token + '; Path=/; HttpOnly; SameSite=Lax; Max-Age=' + maxAge;
+  return 'coastline_session=' + token + '; Path=/; HttpOnly; SameSite=Lax; Max-Age=' + maxAge;
 }
 
 function clearCookie() {
-  return 'grwz_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0';
+  return 'coastline_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0';
 }
 
 function sendJson(res, data, status, headers) {
@@ -836,7 +836,7 @@ async function handler(req, res) {
 
     return sendText(res, 'not found', 404);
   } catch (err) {
-    console.error('[grwz]', err && err.stack ? err.stack : err);
+    console.error('[coastline]', err && err.stack ? err.stack : err);
     if (err && err.code === 'TOO_LARGE') {
       return sendJson(res, { ok: false, error: '上传内容过大' }, 413);
     }
@@ -853,7 +853,7 @@ function main() {
   const server = http.createServer(handler);
   server.listen(PORT, HOST, function () {
     console.log('');
-    console.log('  个人官网已启动');
+    console.log('  Coastline 已启动');
     console.log('  ----------------------------------');
     console.log('  前台:    http://localhost:' + PORT + '/');
     console.log('  后台:    http://localhost:' + PORT + '/backstage');

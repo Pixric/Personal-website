@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var ICONS = window.GRWZ_ICONS || {};
+  var ICONS = window.COASTLINE_ICONS || {};
   var $ = function (id) { return document.getElementById(id); };
   var state = { settings: {}, tracks: [], socials: [], limits: {} };
 
@@ -304,7 +304,7 @@
 
   function showLogin() {
     showStep('stepLogin');
-    document.title = '登录 · 个人官网后台';
+    document.title = '登录 · Coastline 后台';
   }
 
   var entryInput = $('entryInput');
@@ -417,7 +417,7 @@
   function showAdmin() {
     $('gate').hidden = true;
     $('admin').hidden = false;
-    document.title = '后台管理 · 个人官网';
+    document.title = '后台管理 · Coastline';
     loadState();
   }
 

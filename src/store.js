@@ -9,7 +9,7 @@ const DB_FILE = path.join(DATA_DIR, 'db.json');
 const DEFAULTS = {
   initialized: '0',
   security_entry: '',
-  site_name: '贪睡',
+  site_name: '海岸线',
   nickname: '',
   about_text: '常年研究逆向工具软件，擅长搭建网站。',
   avatar_key: '',

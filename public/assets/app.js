@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var ICONS = window.GRWZ_ICONS || {};
+  var ICONS = window.COASTLINE_ICONS || {};
   var $ = function (id) { return document.getElementById(id); };
 
   function esc(s) {
