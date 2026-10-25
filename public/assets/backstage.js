@@ -470,8 +470,14 @@
 
     $('avatarPreview').style.backgroundImage = s.avatar_url ? 'url("' + s.avatar_url + '")' : '';
     $('avatarPreview').textContent = s.avatar_url ? '' : '未设置';
-    $('bgPreview').style.backgroundImage = s.bg_url ? 'url("' + s.bg_url + '")' : '';
-    $('bgPreview').textContent = s.bg_url ? '' : '未设置（使用内置渐变）';
+    var remote = s.bg_url_remote || '';
+    $('bgPreview').style.backgroundImage = (remote || s.bg_url) ? 'url("' + (remote || s.bg_url) + '")' : '';
+    $('bgPreview').textContent = (remote || s.bg_url) ? '' : '未设置（使用内置渐变）';
+    $('fBgUrl').value = remote;
+    $('fBgPosition').value = s.bg_position || 'center center';
+    $('fBgSizeDesktop').value = s.bg_size_desktop || 'cover';
+    $('fBgSizeMobile').value = s.bg_size_mobile || 'cover';
+    $('fontInfo').textContent = s.font_url ? '已上传自定义字体' : '未上传自定义字体';
 
     ['anim_intro', 'anim_bg', 'anim_reveal', 'anim_avatar', 'anim_player'].forEach(function (k) {
       var el = document.querySelector('[data-anim="' + k + '"]');
@@ -564,6 +570,63 @@
         $('bgPreview').style.backgroundImage = '';
         $('bgPreview').textContent = '未设置（使用内置渐变）';
         toast('已移除背景图', 'success');
+      }).catch(function (e) { toast(e.message, 'error'); });
+  });
+
+  $('saveBg').addEventListener('click', function () {
+    var btn = $('saveBg');
+    var el = $('bgMsg');
+    var url = $('fBgUrl').value.trim();
+    if (url && !/^https?:\/\//i.test(url)) {
+      msg(el, '网络图片地址需要以 http:// 或 https:// 开头', 'error');
+      return;
+    }
+    btn.disabled = true;
+    msg(el, '保存中…');
+    api('/admin/settings', {
+      method: 'PUT',
+      body: {
+        bg_url: url,
+        bg_position: $('fBgPosition').value,
+        bg_size_desktop: $('fBgSizeDesktop').value,
+        bg_size_mobile: $('fBgSizeMobile').value,
+      },
+    }).then(function () {
+      msg(el, '已保存', 'success');
+      toast('背景设置已保存', 'success');
+      if (url) {
+        $('bgPreview').style.backgroundImage = 'url("' + url + '")';
+        $('bgPreview').textContent = '';
+      }
+    }).catch(function (e) { msg(el, e.message, 'error'); })
+      .finally(function () { btn.disabled = false; });
+  });
+
+  $('fontPick').addEventListener('click', function () { $('fontFile').click(); });
+  $('fontFile').addEventListener('change', function () {
+    var f = this.files[0];
+    this.value = '';
+    if (!f) return;
+    var mask = openUploadModal('上传字体', f.name);
+    var up = addUploadItem(f.name);
+    uploadOne(f, 'font', {}, up).then(function (r) {
+      setTimeout(function () {
+        closeUploadModal();
+        if (r.ok) {
+          $('fontInfo').textContent = '已上传自定义字体：' + f.name;
+          toast('字体已上传', 'success');
+        } else {
+          toast(r.error, 'error', '上传失败');
+        }
+      }, r.ok ? 600 : 1600);
+    });
+  });
+
+  $('fontClear').addEventListener('click', function () {
+    api('/admin/settings', { method: 'PUT', body: { font_key: '', font_family: '' } })
+      .then(function () {
+        $('fontInfo').textContent = '未上传自定义字体';
+        toast('已移除自定义字体', 'success');
       }).catch(function (e) { toast(e.message, 'error'); });
   });
 

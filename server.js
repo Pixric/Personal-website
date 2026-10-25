@@ -36,10 +36,15 @@ const MIME = {
   '.flac': 'audio/flac',
   '.ogg': 'audio/ogg',
   '.opus': 'audio/opus',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
 };
 
 const AUDIO_EXT = new Set(['.mp3', '.m4a', '.aac', '.wav', '.flac', '.ogg', '.opus']);
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.avif', '.ico']);
+const FONT_EXT = new Set(['.ttf', '.otf', '.woff', '.woff2']);
 const AUDIO_MIME = new Set(['.mp3', '.m4a', '.wav', '.flac', '.ogg', '.opus', '.aac']);
 
 function b64url(buf) {
@@ -254,6 +259,12 @@ function publicSite() {
       about_text: s.about_text || '',
       avatar_url: assetUrl(s.avatar_key),
       bg_url: assetUrl(s.bg_key),
+      bg_remote_url: s.bg_url || '',
+      bg_position: s.bg_position || 'center center',
+      bg_size_desktop: s.bg_size_desktop || 'cover',
+      bg_size_mobile: s.bg_size_mobile || 'cover',
+      font_url: assetUrl(s.font_key),
+      font_family: s.font_family || '',
       music_enabled: s.music_enabled !== '0',
       music_mode: s.music_mode === 'random' ? 'random' : 'default',
       github_user: s.github_user || '',
@@ -297,6 +308,8 @@ function publicSite() {
 
 const EDITABLE = [
   'site_name', 'nickname', 'about_text', 'avatar_key', 'bg_key',
+  'bg_url', 'bg_position', 'bg_size_desktop', 'bg_size_mobile',
+  'font_key', 'font_family',
   'music_enabled', 'music_mode', 'github_user', 'github_show_repos', 'github_show_chart',
   'anim_intro', 'anim_bg', 'anim_reveal', 'anim_avatar', 'anim_player',
   'footer_text', 'footer_opacity', 'footer_color', 'footer_link',
@@ -314,6 +327,8 @@ function adminState() {
   for (const k of EDITABLE) settings[k] = s[k] == null ? '' : s[k];
   settings.avatar_url = assetUrl(s.avatar_key);
   settings.bg_url = assetUrl(s.bg_key);
+  settings.bg_remote_url = s.bg_url || '';
+  settings.font_url = assetUrl(s.font_key);
 
   return {
     ok: true,
@@ -338,7 +353,7 @@ function secureExt(name, fallback) {
 }
 
 function kindDir(kind) {
-  const map = { avatar: 'avatar', bg: 'bg', track: 'track', cover: 'cover', icon: 'icon' };
+  const map = { avatar: 'avatar', bg: 'bg', track: 'track', cover: 'cover', icon: 'icon', font: 'font' };
   return map[kind] || null;
 }
 
@@ -383,11 +398,15 @@ async function handleUpload(req, res) {
     }, 413);
   }
 
-  const ext = secureExt(file.filename, kind === 'track' ? '.mp3' : '.png');
+  const ext = secureExt(file.filename, kind === 'track' ? '.mp3' : (kind === 'font' ? '.ttf' : '.png'));
 
   if (kind === 'track') {
     if (!AUDIO_EXT.has(ext)) {
       return sendJson(res, { ok: false, error: '音乐只支持 mp3 / m4a / wav / flac / ogg 等音频文件' }, 415);
+    }
+  } else if (kind === 'font') {
+    if (!FONT_EXT.has(ext)) {
+      return sendJson(res, { ok: false, error: '字体只支持 ttf / otf / woff / woff2' }, 415);
     }
   } else if (!IMAGE_EXT.has(ext)) {
     return sendJson(res, { ok: false, error: '这里只支持图片文件（png / jpg / webp / gif / svg）' }, 415);
@@ -420,6 +439,16 @@ async function handleUpload(req, res) {
     store.setSettings({ [keyName]: key });
     if (old && old !== key) deleteKey(old);
     return sendJson(res, { ok: true, key: key, url: assetUrl(key), replaced: old || '' });
+  }
+
+  if (kind === 'font') {
+    const old = store.getSettings().font_key;
+    const family = 'CustomFont' + Date.now().toString(36);
+    store.setSettings({ font_key: key, font_family: family });
+    if (old && old !== key) deleteKey(old);
+    return sendJson(res, {
+      ok: true, key: key, url: assetUrl(key), font_family: family, replaced: old || '',
+    });
   }
 
   if (kind === 'track') {

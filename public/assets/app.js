@@ -10,6 +10,8 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  function escapeHtml(s) { return esc(s); }
+
   function iconSvg(name) {
     var ic = ICONS[name] || ICONS.link;
     return '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="' + ic.path + '"/></svg>';
@@ -54,6 +56,7 @@
     }
 
     applyBackground(site);
+    applyFont(site);
     applyAnimations(site);
 
     var displayName = site.site_name || '我的主页';
@@ -78,12 +81,27 @@
 
   function applyBackground(site) {
     var bg = $('bg');
-    if (site.bg_url) {
-      bg.style.backgroundImage = 'url("' + site.bg_url.replace(/"/g, '%22') + '")';
+    var src = site.bg_url || site.bg_remote_url || '';
+    if (src) {
+      bg.style.backgroundImage = 'url("' + src.replace(/"/g, '%22') + '")';
+      bg.style.backgroundPosition = site.bg_position || 'center center';
+      var mobile = window.matchMedia('(max-width: 768px)').matches;
+      bg.style.backgroundSize = mobile
+        ? (site.bg_size_mobile || 'cover')
+        : (site.bg_size_desktop || 'cover');
     } else {
       bg.style.backgroundImage = 'radial-gradient(1000px 600px at 15% -10%, #f3f3f4 0%, transparent 60%), radial-gradient(900px 500px at 95% 5%, #ededef 0%, transparent 55%), linear-gradient(180deg,#fafafa 0%,#f2f2f3 100%)';
       bg.style.filter = 'none';
     }
+  }
+
+  function applyFont(site) {
+    if (!site.font_url || !site.font_family) return;
+    var style = document.createElement('style');
+    style.textContent =
+      '@font-face{font-family:"' + site.font_family + '";src:url("' + site.font_url + '") format("truetype");font-display:swap;}' +
+      'body,button,input,textarea,select{font-family:"' + site.font_family + '",-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif !important;}';
+    document.head.appendChild(style);
   }
 
   function applyAnimations(site) {
@@ -261,7 +279,7 @@
     if (site.github_show_chart) {
       var card = $('contribCard');
       var img = $('contribImg');
-      img.src = 'https://ghchart.rshah.org/' + encodeURIComponent(user);
+      img.src = 'https://ghchart.rshah.org/2ea44f/' + encodeURIComponent(user);
       img.alt = user + ' 的 GitHub 贡献图';
       img.onerror = function () {
         img.parentElement.innerHTML = '<p class="projects-status">贡献图加载失败。</p>';
@@ -321,7 +339,6 @@
     var player = $('player');
     var playerMain = $('playerMain');
     var toggleBtn = $('playerToggle');
-    var chevronBtn = $('playerChevron');
     var iconPlay = $('iconPlay');
     var iconPause = $('iconPause');
     var art = $('playerArt');
@@ -332,9 +349,56 @@
     var seekBar = $('seekBar');
     var timeCurrent = $('timeCurrent');
     var timeTotal = $('timeTotal');
+    var prevBtn = $('playerPrev');
+    var nextBtn = $('playerNext');
+    var listBtn = $('playerListBtn');
+    var playerList = $('playerList');
+    var listItems = $('plItems');
+    var searchEl = $('plSearch');
 
     var RING_LEN = 131.9;
     var isScrubbing = false;
+
+    function renderList(keyword) {
+      var kw = String(keyword || '').trim().toLowerCase();
+      var all = queue;
+      var shown = kw
+        ? all.filter(function (t) {
+            return String(t.title || '').toLowerCase().indexOf(kw) >= 0 ||
+              String(t.artist || '').toLowerCase().indexOf(kw) >= 0;
+          })
+        : all;
+
+      listItems.innerHTML = '';
+      if (!shown.length) {
+        listItems.innerHTML = '<div class="pl-empty">没有找到匹配的歌曲</div>';
+        return;
+      }
+
+      shown.forEach(function (t) {
+        var realIndex = queue.indexOf(t);
+        var item = document.createElement('div');
+        item.className = 'pl-item' + (realIndex === index ? ' active' : '');
+        item.innerHTML =
+          '<div class="pl-cover"' + (t.cover ? ' style="background-image:url(\'' + t.cover + '\')"' : '') + '>' +
+            (t.cover ? '' : '♪') +
+          '</div>' +
+          '<div class="pl-info">' +
+            '<span class="pl-title">' + escapeHtml(t.title) + '</span>' +
+            (t.artist ? '<span class="pl-artist">' + escapeHtml(t.artist) + '</span>' : '') +
+          '</div>' +
+          (realIndex === index
+            ? '<span class="pl-playing"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4h3v16H7zM14 8h3v12h-3z"/></svg></span>'
+            : '');
+        item.addEventListener('click', function (e) {
+          e.stopPropagation();
+          index = realIndex;
+          loadTrack(index, true);
+          renderList(searchEl.value);
+        });
+        listItems.appendChild(item);
+      });
+    }
 
     function shuffle(arr) {
       for (var i = arr.length - 1; i > 0; i--) {
@@ -458,17 +522,47 @@
     });
 
     toggleBtn.addEventListener('click', function (e) { e.stopPropagation(); togglePlay(); });
-    playerMain.addEventListener('click', function (e) {
-      if (e.target.closest && e.target.closest('.player-chevron')) return;
-      togglePlay();
-    });
-    chevronBtn.addEventListener('click', function (e) {
+
+    prevBtn.addEventListener('click', function (e) {
       e.stopPropagation();
-      player.classList.toggle('expanded');
+      if (queue.length < 2) { audio.currentTime = 0; return; }
+      index = (index - 1 + queue.length) % queue.length;
+      loadTrack(index, true);
+    });
+
+    nextBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (queue.length < 2) { audio.currentTime = 0; return; }
+      index = (index + 1) % queue.length;
+      loadTrack(index, true);
+    });
+
+    listBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = playerList.hidden;
+      playerList.hidden = !open;
+      listBtn.classList.toggle('active', open);
+      if (open) {
+        renderList();
+        searchEl.value = '';
+        setTimeout(function () { searchEl.focus(); }, 50);
+      }
+    });
+
+    searchEl.addEventListener('input', function (e) {
+      e.stopPropagation();
+      renderList(searchEl.value);
+    });
+    searchEl.addEventListener('click', function (e) { e.stopPropagation(); });
+
+    playerMain.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('button')) return;
+      togglePlay();
     });
 
     loadTrack(0, false);
     player.hidden = false;
+    renderList();
 
     setTimeout(function () {
       audio.play().then(function () { setPlayingUI(true); }).catch(function () {

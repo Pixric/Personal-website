@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#f7f7f8" />
 <title>加载中…</title>
 <meta name="description" id="metaDesc" content="" />
-<link rel="stylesheet" href="/assets/style.css?v=2" />
+<link rel="stylesheet" href="/assets/style.css?v=3" />
 </head>
 <body>
 
@@ -92,14 +92,28 @@
       <div class="player-title" id="playerTitle">—</div>
       <div class="player-hint" id="playerHint">点击播放</div>
     </div>
+    <button class="player-btn" id="playerPrev" aria-label="上一首" type="button">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>
+    </button>
     <button class="player-toggle" id="playerToggle" aria-label="播放/暂停" type="button">
       <svg id="iconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>
       <svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
     </button>
-    <button class="player-chevron" id="playerChevron" aria-label="展开播放进度" type="button">
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 15.5 5 8.5l1.4-1.4L12 12.7l5.6-5.6L19 8.5z"/></svg>
+    <button class="player-btn" id="playerNext" aria-label="下一首" type="button">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>
+    </button>
+    <button class="player-btn" id="playerListBtn" aria-label="播放列表" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
     </button>
   </div>
+
+  <div class="player-list" id="playerList" hidden>
+    <div class="pl-head">
+      <input type="search" class="pl-search" id="plSearch" placeholder="搜索歌曲或歌手…" />
+    </div>
+    <div class="pl-items" id="plItems"></div>
+  </div>
+
   <div class="player-expand">
     <div class="seek-row">
       <span class="seek-time" id="timeCurrent">0:00</span>
@@ -111,7 +125,7 @@
 
 <audio id="audio" preload="auto"></audio>
 
-<script src="/assets/icons.js?v=2"></script>
-<script src="/assets/app.js?v=2"></script>
+<script src="/assets/icons.js?v=3"></script>
+<script src="/assets/app.js?v=3"></script>
 </body>
 </html>

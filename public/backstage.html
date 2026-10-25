@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex, nofollow" />
 <title>后台管理</title>
-<link rel="stylesheet" href="/assets/backstage.css?v=2" />
+<link rel="stylesheet" href="/assets/backstage.css?v=3" />
 </head>
 <body>
 
@@ -180,6 +180,61 @@
             <button class="btn ghost small" id="bgClear" type="button">移除</button>
           </div>
           <span class="field-hint">建议横向大图（1920×1080 以上）。未上传时使用内置渐变背景。</span>
+
+          <label class="field" style="margin-top:16px">
+            <span class="field-label">或填写网络图片地址</span>
+            <input id="fBgUrl" type="text" placeholder="https://example.com/bg.jpg" />
+            <span class="field-hint">填入后优先使用网络图片；清空则回到上传的图片。</span>
+          </label>
+
+          <div class="grid-2">
+            <label class="field">
+              <span class="field-label">显示位置</span>
+              <select id="fBgPosition">
+                <option value="center center">居中</option>
+                <option value="center top">靠上</option>
+                <option value="center bottom">靠下</option>
+                <option value="left center">靠左</option>
+                <option value="right center">靠右</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label">电脑端缩放</span>
+              <select id="fBgSizeDesktop">
+                <option value="cover">铺满（裁剪）</option>
+                <option value="contain">完整显示（留白）</option>
+                <option value="100% 100%">拉伸铺满</option>
+                <option value="auto">原始大小</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="field">
+            <span class="field-label">手机端缩放</span>
+            <select id="fBgSizeMobile">
+              <option value="cover">铺满（裁剪）</option>
+              <option value="contain">完整显示（留白）</option>
+              <option value="100% 100%">拉伸铺满</option>
+              <option value="auto">原始大小</option>
+            </select>
+            <span class="field-hint">手机和电脑可以分别设置，电脑端默认铺满显示。</span>
+          </label>
+
+          <div class="row">
+            <button class="btn primary" id="saveBg" type="button">保存背景设置</button>
+            <span class="msg inline" id="bgMsg"></span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>自定义字体</h3>
+          <p class="field-hint" style="margin-bottom:12px">上传 TTF / OTF / WOFF 字体文件，全站会使用该字体。</p>
+          <div class="row gap">
+            <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" hidden />
+            <button class="btn" id="fontPick" type="button">上传字体</button>
+            <button class="btn ghost small" id="fontClear" type="button">移除</button>
+          </div>
+          <span class="field-hint" id="fontInfo">未上传自定义字体</span>
         </div>
       </div>
 
@@ -497,7 +552,7 @@
 
 <div id="modalRoot"></div>
 
-<script src="/assets/icons.js?v=2"></script>
-<script src="/assets/backstage.js?v=2"></script>
+<script src="/assets/icons.js?v=3"></script>
+<script src="/assets/backstage.js?v=3"></script>
 </body>
 </html>
