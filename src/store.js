@@ -20,6 +20,7 @@ const DEFAULTS = {
   bg_size_mobile: 'cover',
   font_key: '',
   font_family: '',
+  font_scope: 'front',
   music_enabled: '1',
   music_mode: 'default',
   github_user: '',
@@ -111,6 +112,19 @@ export function setSettings(patch) {
   const s = load();
   for (const [k, v] of Object.entries(patch || {})) s.settings[k] = String(v ?? '');
   save();
+}
+
+export function getRecoveryToken() {
+  return load().settings.recovery_token || '';
+}
+
+export function ensureRecoveryToken(token) {
+  const s = load();
+  if (!s.settings.recovery_token && token) {
+    s.settings.recovery_token = String(token);
+    save();
+  }
+  return s.settings.recovery_token || '';
 }
 
 export function findAdminByName(username) {

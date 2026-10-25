@@ -478,6 +478,9 @@
     $('fBgSizeDesktop').value = s.bg_size_desktop || 'cover';
     $('fBgSizeMobile').value = s.bg_size_mobile || 'cover';
     $('fontInfo').textContent = s.font_url ? '已上传自定义字体' : '未上传自定义字体';
+    var scopeList = String(s.font_scope || '').split(',').filter(Boolean);
+    $('fontScopeFront').checked = scopeList.indexOf('front') >= 0;
+    $('fontScopeAdmin').checked = scopeList.indexOf('admin') >= 0;
 
     ['anim_intro', 'anim_bg', 'anim_reveal', 'anim_avatar', 'anim_player'].forEach(function (k) {
       var el = document.querySelector('[data-anim="' + k + '"]');
@@ -510,6 +513,9 @@
 
     $('fEntry').value = s.security_entry || '';
     $('entryHint').innerHTML = '当前后台登录地址：<b>' + esc(location.host) + '/' + esc(s.security_entry || '') + '</b>';
+    if (state.recovery_token) {
+      $('fRecover').value = location.origin + '/backstage?recover=' + state.recovery_token;
+    }
     $('viewSite').href = '/';
   }
 
@@ -613,8 +619,14 @@
       setTimeout(function () {
         closeUploadModal();
         if (r.ok) {
+          state.settings.font_key = r.data.key;
+          state.settings.font_family = r.data.font_family;
+          state.settings.font_scope = 'front';
           $('fontInfo').textContent = '已上传自定义字体：' + f.name;
-          toast('字体已上传', 'success');
+          $('fontScopeFront').checked = true;
+          $('fontScopeAdmin').checked = false;
+          applyAdminFont(r.data.font_family, r.data.url);
+          toast('字体已上传，默认只作用于前台', 'success');
         } else {
           toast(r.error, 'error', '上传失败');
         }
@@ -623,12 +635,51 @@
   });
 
   $('fontClear').addEventListener('click', function () {
-    api('/admin/settings', { method: 'PUT', body: { font_key: '', font_family: '' } })
+    api('/admin/settings', { method: 'PUT', body: { font_key: '', font_family: '', font_scope: '' } })
       .then(function () {
         $('fontInfo').textContent = '未上传自定义字体';
+        $('fontScopeFront').checked = false;
+        $('fontScopeAdmin').checked = false;
+        applyAdminFont('', '');
         toast('已移除自定义字体', 'success');
       }).catch(function (e) { toast(e.message, 'error'); });
   });
+
+  function saveFontScope() {
+    var scope = [];
+    if ($('fontScopeFront').checked) scope.push('front');
+    if ($('fontScopeAdmin').checked) scope.push('admin');
+    return api('/admin/settings', { method: 'PUT', body: { font_scope: scope.join(',') } });
+  }
+
+  $('fontScopeFront').addEventListener('change', function () {
+    saveFontScope().then(function () {
+      toast('已保存：前台' + ($('fontScopeFront').checked ? '启用' : '停用') + '自定义字体', 'success');
+    }).catch(function (e) { toast(e.message, 'error'); });
+  });
+
+  $('fontScopeAdmin').addEventListener('change', function () {
+    var on = this.checked;
+    saveFontScope().then(function () {
+      if (on) applyAdminFont(state.settings.font_family, state.settings.font_url);
+      else applyAdminFont('', '');
+      toast('已保存：后台' + (on ? '启用' : '停用') + '自定义字体', 'success');
+    }).catch(function (e) { toast(e.message, 'error'); });
+  });
+
+  var adminFontStyle = null;
+  function applyAdminFont(family, url) {
+    if (adminFontStyle) {
+      adminFontStyle.remove();
+      adminFontStyle = null;
+    }
+    if (!family || !url) return;
+    adminFontStyle = document.createElement('style');
+    adminFontStyle.textContent =
+      '@font-face{font-family:"' + family + '";src:url("' + url + '");font-display:swap;}' +
+      'body,button,input,textarea,select{font-family:"' + family + '",-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif !important;}';
+    document.head.appendChild(adminFontStyle);
+  }
 
   $('saveAppearance').addEventListener('click', function () {
     var btn = $('saveAppearance');
@@ -731,6 +782,24 @@
         setTimeout(function () { location.replace('/' + value); }, 1600);
       })
       .catch(function (e) { msg(el, e.message, 'error'); btn.disabled = false; });
+  });
+
+  $('copyRecover').addEventListener('click', function () {
+    var input = $('fRecover');
+    var text = input.value;
+    if (!text) { toast('恢复地址尚未生成', 'error'); return; }
+    var done = function () { toast('恢复地址已复制', 'success'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function () {
+        input.select();
+        document.execCommand('copy');
+        done();
+      });
+    } else {
+      input.select();
+      document.execCommand('copy');
+      done();
+    }
   });
 
   $('saveCreds').addEventListener('click', function () {

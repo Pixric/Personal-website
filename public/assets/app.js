@@ -97,9 +97,11 @@
 
   function applyFont(site) {
     if (!site.font_url || !site.font_family) return;
+    var scope = String(site.font_scope || '').split(',');
+    if (scope.indexOf('front') < 0) return;
     var style = document.createElement('style');
     style.textContent =
-      '@font-face{font-family:"' + site.font_family + '";src:url("' + site.font_url + '") format("truetype");font-display:swap;}' +
+      '@font-face{font-family:"' + site.font_family + '";src:url("' + site.font_url + '");font-display:swap;}' +
       'body,button,input,textarea,select{font-family:"' + site.font_family + '",-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif !important;}';
     document.head.appendChild(style);
   }

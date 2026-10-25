@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex, nofollow" />
 <title>后台管理</title>
-<link rel="stylesheet" href="/assets/backstage.css?v=5" />
-<link rel="stylesheet" href="/assets/cropper.min.css?v=5" />
-<link rel="stylesheet" href="/assets/cover.css?v=5" />
+<link rel="stylesheet" href="/assets/backstage.css?v=6" />
+<link rel="stylesheet" href="/assets/cropper.min.css?v=6" />
+<link rel="stylesheet" href="/assets/cover.css?v=6" />
 </head>
 <body>
 
@@ -230,13 +230,28 @@
 
         <div class="panel">
           <h3>自定义字体</h3>
-          <p class="field-hint" style="margin-bottom:12px">上传 TTF / OTF / WOFF 字体文件，全站会使用该字体。</p>
+          <p class="field-hint" style="margin-bottom:12px">上传 TTF / OTF / WOFF 字体文件，可分别设置是否作用于前台和后台。</p>
           <div class="row gap">
             <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" hidden />
             <button class="btn" id="fontPick" type="button">上传字体</button>
             <button class="btn ghost small" id="fontClear" type="button">移除</button>
           </div>
           <span class="field-hint" id="fontInfo">未上传自定义字体</span>
+
+          <div class="field" style="margin-top:16px">
+            <span class="field-label">作用范围</span>
+            <div class="switch-list">
+              <label class="switch-row">
+                <span><b>前台生效</b><em>个人主页使用该字体</em></span>
+                <input type="checkbox" id="fontScopeFront" />
+              </label>
+              <label class="switch-row">
+                <span><b>后台生效</b><em>管理页面使用该字体</em></span>
+                <input type="checkbox" id="fontScopeAdmin" />
+              </label>
+            </div>
+            <span class="field-hint">两个都关掉时，字体仍保留但不生效。</span>
+          </div>
         </div>
       </div>
 
@@ -505,7 +520,15 @@
           <span class="msg inline" id="entryMsg2"></span>
         </div>
         <div class="warn">
-          修改后旧地址会立刻失效，请用新地址重新登录后台。忘记安全入口只能修改数据库。
+          修改后旧地址会立刻失效，请用新地址重新登录后台。/backstage 已不再暴露后台入口。
+        </div>
+        <div class="field" style="margin-top:16px">
+          <span class="field-label">恢复地址（忘记安全入口时用）</span>
+          <div class="row gap">
+            <input id="fRecover" type="text" readonly spellcheck="false" />
+            <button class="btn ghost small" id="copyRecover" type="button">复制</button>
+          </div>
+          <span class="field-hint">仅你能看到，请妥善保管，不要分享给他人。</span>
         </div>
       </div>
 
@@ -554,9 +577,9 @@
 
 <div id="modalRoot"></div>
 
-<script src="/assets/icons.js?v=5"></script>
-<script src="/assets/cropper.min.js?v=5"></script>
-<script src="/assets/cover.js?v=5"></script>
-<script src="/assets/backstage.js?v=5"></script>
+<script src="/assets/icons.js?v=6"></script>
+<script src="/assets/cropper.min.js?v=6"></script>
+<script src="/assets/cover.js?v=6"></script>
+<script src="/assets/backstage.js?v=6"></script>
 </body>
 </html>

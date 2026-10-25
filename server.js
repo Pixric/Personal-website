@@ -281,6 +281,7 @@ function publicSite() {
       bg_size_mobile: s.bg_size_mobile || 'cover',
       font_url: assetUrl(s.font_key),
       font_family: s.font_family || '',
+      font_scope: s.font_scope || 'front',
       music_enabled: s.music_enabled !== '0',
       music_mode: s.music_mode === 'random' ? 'random' : 'default',
       github_user: s.github_user || '',
@@ -325,7 +326,7 @@ function publicSite() {
 const EDITABLE = [
   'site_name', 'nickname', 'about_text', 'avatar_key', 'bg_key',
   'bg_url', 'bg_position', 'bg_size_desktop', 'bg_size_mobile',
-  'font_key', 'font_family',
+  'font_key', 'font_family', 'font_scope',
   'music_enabled', 'music_mode', 'github_user', 'github_show_repos', 'github_show_chart',
   'anim_intro', 'anim_bg', 'anim_reveal', 'anim_avatar', 'anim_player',
   'footer_text', 'footer_opacity', 'footer_color', 'footer_link',
@@ -360,6 +361,7 @@ function adminState() {
     limits: { maxUploadBytes: MAX_UPLOAD, tracksMax: 50, socialsSoftMax: 5 },
     storage_ready: true,
     visits: parseInt(s.visits || '0', 10),
+    recovery_token: store.getRecoveryToken(),
   };
 }
 
@@ -627,6 +629,7 @@ async function api(req, res, pathname, method) {
     }
 
     const row = store.insertAdmin(username, hashPassword(password));
+    store.ensureRecoveryToken(b64url(crypto.randomBytes(24)));
     store.setSettings({ initialized: '1', site_url: url.origin });
     const token = createSession(row.id, req);
 
@@ -941,6 +944,20 @@ async function handler(req, res) {
     if (pathname.startsWith('/api/')) return await api(req, res, pathname, method);
 
     if (pathname === '/backstage' || pathname === '/backstage/') {
+      const s = store.getSettings();
+      const entry = s.security_entry || '';
+      const done = s.initialized === '1';
+
+      // 站点已初始化：/backstage 不再暴露后台，一律按普通前台请求处理。
+      // 唯一例外：带恢复令牌时才允许进入，避免忘记安全入口后彻底锁死。
+      if (done && entry) {
+        const token = url.searchParams.get('recover');
+        const expected = store.getRecoveryToken();
+        if (!token || token !== expected) {
+          return await serveFrontendFallback(req, res);
+        }
+      }
+
       const ok = await serveFile(req, res, path.join(PUBLIC, 'backstage.html'));
       if (ok) return;
       return sendText(res, 'not found', 404);
@@ -988,10 +1005,20 @@ async function handler(req, res) {
   }
 }
 
+async function serveFrontendFallback(req, res) {
+  const ok = await serveFile(req, res, path.join(PUBLIC, 'index.html'));
+  if (ok) return;
+  return sendText(res, 'not found', 404);
+}
+
 function main() {
   store.load();
   fs.mkdirSync(UPLOADS, { recursive: true });
   store.pruneSessions();
+
+  const recovery = store.ensureRecoveryToken(b64url(crypto.randomBytes(24)));
+  const s0 = store.getSettings();
+  const entry = s0.security_entry || '';
 
   const server = http.createServer(handler);
   server.listen(PORT, HOST, function () {
@@ -999,7 +1026,13 @@ function main() {
     console.log('  Personal-website 已启动');
     console.log('  ----------------------------------');
     console.log('  前台:    http://localhost:' + PORT + '/');
-    console.log('  后台:    http://localhost:' + PORT + '/backstage');
+    if (entry && s0.initialized === '1') {
+      console.log('  后台:    http://localhost:' + PORT + '/' + entry);
+      console.log('  恢复地址: /backstage?recover=' + recovery);
+      console.log('          （仅忘记安全入口时使用，请勿外传）');
+    } else {
+      console.log('  后台:    http://localhost:' + PORT + '/backstage');
+    }
     console.log('  数据:    ' + path.join(ROOT, 'data'));
     console.log('');
   });
