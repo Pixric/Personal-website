@@ -547,12 +547,15 @@ async function handleUpload(req, res) {
   }
 
   if (kind === 'font') {
-    const old = store.getSettings().font_key;
+    const s = store.getSettings();
+    const old = s.font_key;
     const family = 'CustomFont' + Date.now().toString(36);
-    store.setSettings({ font_key: key, font_family: family });
+    const scope = s.font_scope && s.font_scope.trim() ? s.font_scope : 'front';
+    store.setSettings({ font_key: key, font_family: family, font_scope: scope });
     if (old && old !== key) deleteKey(old);
     return sendJson(res, {
-      ok: true, key: key, url: assetUrl(key), font_family: family, replaced: old || '',
+      ok: true, key: key, url: assetUrl(key), font_family: family,
+      font_scope: scope, replaced: old || '',
     });
   }
 

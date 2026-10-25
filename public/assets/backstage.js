@@ -429,6 +429,7 @@
       state.limits = data.limits || {};
       state.files = data.files || [];
       state.visits = data.visits || 0;
+      state.recovery_token = data.recovery_token || '';
 
       $('sideUser').textContent = state.settings.site_name || '我的官网';
       fillForms();
@@ -477,10 +478,20 @@
     $('fBgPosition').value = s.bg_position || 'center center';
     $('fBgSizeDesktop').value = s.bg_size_desktop || 'cover';
     $('fBgSizeMobile').value = s.bg_size_mobile || 'cover';
-    $('fontInfo').textContent = s.font_url ? '已上传自定义字体' : '未上传自定义字体';
-    var scopeList = String(s.font_scope || '').split(',').filter(Boolean);
+    var fontFile = (state.files || []).filter(function (f) { return f.kind === 'font'; })[0];
+    if (s.font_url) {
+      $('fontInfo').textContent = '已上传自定义字体' + (fontFile && fontFile.original_name ? '：' + fontFile.original_name : '');
+    } else {
+      $('fontInfo').textContent = '未上传自定义字体';
+    }
+    var scopeList = String(s.font_scope || 'front').split(',').filter(Boolean);
     $('fontScopeFront').checked = scopeList.indexOf('front') >= 0;
     $('fontScopeAdmin').checked = scopeList.indexOf('admin') >= 0;
+    if (scopeList.indexOf('admin') >= 0 && s.font_url && s.font_family) {
+      applyAdminFont(s.font_family, s.font_url);
+    } else {
+      applyAdminFont('', '');
+    }
 
     ['anim_intro', 'anim_bg', 'anim_reveal', 'anim_avatar', 'anim_player'].forEach(function (k) {
       var el = document.querySelector('[data-anim="' + k + '"]');
@@ -622,10 +633,13 @@
           state.settings.font_key = r.data.key;
           state.settings.font_family = r.data.font_family;
           state.settings.font_scope = 'front';
+          state.settings.font_url = r.data.url;
           $('fontInfo').textContent = '已上传自定义字体：' + f.name;
           $('fontScopeFront').checked = true;
           $('fontScopeAdmin').checked = false;
-          applyAdminFont(r.data.font_family, r.data.url);
+          applyAdminFont('', '');
+          api('/admin/settings', { method: 'PUT', body: { font_scope: 'front' } })
+            .catch(function () {});
           toast('字体已上传，默认只作用于前台', 'success');
         } else {
           toast(r.error, 'error', '上传失败');
