@@ -859,29 +859,12 @@
       });
 
       item.querySelector('.t-cover-btn').addEventListener('click', function () {
-        var input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.onchange = function () {
-          var f = input.files[0];
-          if (!f) return;
-          var mask = openUploadModal('上传封面', f.name);
-          var up = addUploadItem(f.name);
-          uploadOne(f, 'cover', {}, up).then(function (r) {
-            if (!r.ok) {
-              setTimeout(function () { closeUploadModal(); toast(r.error, 'error', '上传失败'); }, 1600);
-              return;
-            }
-            api('/admin/tracks/' + t.id, { method: 'PUT', body: { cover_key: r.data.key } })
-              .then(function () {
-                setTimeout(function () { closeUploadModal(); toast('封面已更新', 'success'); loadState(); }, 600);
-              })
-              .catch(function (e) {
-                setTimeout(function () { closeUploadModal(); toast(e.message, 'error'); }, 1200);
-              });
+        if (window.GRWZ && window.GRWZ.openCoverModal) {
+          window.GRWZ.openCoverModal(t, function () {
+            toast('封面已更新', 'success');
+            loadState();
           });
-        };
-        input.click();
+        }
       });
 
       item.querySelector('.t-del').addEventListener('click', function () {

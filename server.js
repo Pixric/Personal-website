@@ -373,6 +373,93 @@ function deleteKey(key) {
   store.deleteAsset(key);
 }
 
+async function handleCoverSearch(res, q) {
+  const term = encodeURIComponent(q);
+  const endpoints = [
+    'https://itunes.apple.com/search?term=' + term + '&entity=song&limit=12',
+    'https://itunes.apple.com/search?term=' + term + '&entity=song&limit=12&country=US',
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 12000);
+      const resp = await fetch(endpoint, {
+        headers: { 'User-Agent': 'Mozilla/5.0 personal-website' },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (!resp.ok) continue;
+
+      const data = await resp.json();
+      const items = (data.results || [])
+        .filter((r) => r.artworkUrl100)
+        .map((r) => ({
+          title: r.trackName || '',
+          artist: r.artistName || '',
+          album: r.collectionName || '',
+          cover: (r.artworkUrl100 || '').replace(/\/100x100bb\.jpg$/, '/600x600bb.jpg'),
+          coverSmall: r.artworkUrl100 || '',
+        }));
+
+      if (items.length) return sendJson(res, { ok: true, items });
+    } catch (err) {
+      console.error('[cover-search]', err && err.message);
+    }
+  }
+
+  return sendJson(res, { ok: true, items: [] });
+}
+
+async function handleCoverFetch(req, res, body) {
+  const coverUrl = String(body.url || '').trim();
+  const trackId = parseInt(body.track_id, 10);
+  if (!Number.isInteger(trackId)) {
+    return sendJson(res, { ok: false, error: '缺少歌曲 ID' }, 400);
+  }
+  if (!/^https:\/\/is\d+-ssl\.mzstatic\.com\//i.test(coverUrl)) {
+    return sendJson(res, { ok: false, error: '只支持从 Apple 官方图片源获取封面' }, 400);
+  }
+  if (!store.findTrack(trackId)) {
+    return sendJson(res, { ok: false, error: '音乐不存在' }, 404);
+  }
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    const resp = await fetch(coverUrl, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!resp.ok) return sendJson(res, { ok: false, error: '封面下载失败' }, 502);
+
+    const buf = Buffer.from(await resp.arrayBuffer());
+    if (buf.length > 5 * 1024 * 1024) {
+      return sendJson(res, { ok: false, error: '封面图片过大' }, 413);
+    }
+
+    const key = 'cover/' + Date.now() + '-' + crypto.randomBytes(6).toString('hex') + '.jpg';
+    const abs = safeAbs(key);
+    if (!abs) return sendJson(res, { ok: false, error: '非法路径' }, 400);
+
+    await fsp.mkdir(path.dirname(abs), { recursive: true });
+    await fsp.writeFile(abs, buf);
+
+    store.upsertAsset({
+      key, size: buf.length, mime: 'image/jpeg',
+      original_name: 'album-cover.jpg', kind: 'cover', uploaded_at: Date.now(),
+    });
+
+    const old = store.findTrack(trackId).cover_key;
+    store.updateTrack(trackId, { cover_key: key });
+    if (old && old !== key) deleteKey(old);
+
+    return sendJson(res, { ok: true, key, url: assetUrl(key) });
+  } catch (err) {
+    console.error('[cover-fetch]', err && err.message);
+    return sendJson(res, { ok: false, error: '封面下载失败' }, 502);
+  }
+}
+
+
 async function handleUpload(req, res) {
   const buf = await readBody(req, MAX_UPLOAD);
   const parts = parseMultipart(buf, req.headers['content-type']);
@@ -575,6 +662,17 @@ async function api(req, res, pathname, method) {
 
     if (rest === 'state' && method === 'GET') return sendJson(res, adminState());
     if (rest === 'upload' && method === 'POST') return handleUpload(req, res);
+
+    if (rest === 'cover-search' && method === 'GET') {
+      const q = String(url.searchParams.get('q') || '').trim();
+      if (!q) return sendJson(res, { ok: false, error: '请输入歌名' }, 400);
+      return handleCoverSearch(res, q);
+    }
+
+    if (rest === 'cover-fetch' && method === 'POST') {
+      const body = await readJson(req);
+      return handleCoverFetch(req, res, body);
+    }
 
     if (rest === 'settings' && method === 'PUT') {
       const body = await readJson(req);

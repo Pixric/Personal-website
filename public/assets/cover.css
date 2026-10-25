@@ -1,0 +1,52 @@
+.cover-modal{ max-width:560px; }
+.cv-tabs{ display:flex; gap:4px; margin-bottom:14px; border-bottom:1px solid var(--border); }
+.cv-tab{
+  padding:8px 14px; font-size:13px; font-family:inherit;
+  background:transparent; border:none; cursor:pointer;
+  color:var(--text-2); border-bottom:2px solid transparent;
+  margin-bottom:-1px; transition:color .15s var(--ease), border-color .15s var(--ease);
+}
+.cv-tab:hover{ color:var(--text); }
+.cv-tab.active{ color:var(--text); border-bottom-color:var(--text); font-weight:500; }
+
+.cv-search-row{ display:flex; gap:8px; margin-bottom:12px; }
+.cv-search-row input{
+  flex:1; padding:8px 12px; font-size:13px; border-radius:8px;
+  border:1px solid var(--border-strong); background:var(--bg); outline:none;
+}
+.cv-search-row input:focus{ border-color:var(--text); }
+
+.cv-results{
+  display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px;
+  max-height:320px; overflow-y:auto; min-height:80px;
+}
+@media (max-width:520px){ .cv-results{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
+
+.cv-item{
+  cursor:pointer; border-radius:8px; overflow:hidden;
+  border:1px solid var(--border); background:var(--bg);
+  transition:border-color .15s var(--ease), transform .15s var(--ease);
+}
+.cv-item:hover{ border-color:var(--text); transform:translateY(-2px); }
+.cv-item img{ width:100%; aspect-ratio:1; object-fit:cover; display:block; background:var(--bg-mute); }
+.cv-item-title{
+  font-size:11px; padding:5px 6px 0; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap;
+}
+.cv-item-artist{
+  font-size:10px; color:var(--text-3); padding:1px 6px 5px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.cv-hint{ grid-column:1/-1; padding:24px; text-align:center; font-size:12.5px; color:var(--text-3); }
+
+.cv-crop-wrap{ margin-top:4px; }
+.cv-crop-box{
+  width:100%; max-height:380px; background:var(--bg-mute);
+  border-radius:10px; overflow:hidden; display:flex;
+  align-items:center; justify-content:center;
+}
+.cv-crop-box img{ max-width:100%; display:block; }
+.cv-crop-actions{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+
+.cropper-view-box,
+.cropper-face{ border-radius:50%; }
