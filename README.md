@@ -96,6 +96,71 @@ $env:PORT="8080"; node server.js
 
 ## 部署
 
+### Docker
+
+项目自带 `Dockerfile` 与 `docker-compose.yml`，数据通过卷挂载持久化。
+
+**使用 docker compose（推荐）**
+
+```bash
+docker compose up -d
+```
+
+**使用 docker run**
+
+```bash
+docker build -t personal-website .
+docker run -d \
+  --name personal-website \
+  --restart unless-stopped \
+  -p 3011:3011 \
+  -v "$(pwd)/data:/app/data" \
+  personal-website
+```
+
+**查看日志（首次启动会打印后台地址与恢复地址）**
+
+```bash
+docker compose logs -f
+```
+
+**数据持久化**
+
+所有数据（配置、上传的图片与音乐）保存在容器内 `/app/data`。
+必须挂载该目录到宿主机，否则删除容器后数据会丢失：
+
+```yaml
+volumes:
+  - ./data:/app/data
+```
+
+**自定义端口**
+
+修改 `docker-compose.yml` 中的端口映射，例如改用 8080：
+
+```yaml
+ports:
+  - "8080:3011"
+```
+
+容器内端口保持 `3011` 不变，只需调整冒号左侧的宿主机端口。
+
+**镜像说明**
+
+- 基础镜像 `node:22-alpine`，体积约 150 MB
+- 以非 root 用户 `node` 运行
+- 内置健康检查，每 30 秒探测一次 `/api/site`
+- 构建时无需 `npm install`，因为项目零依赖
+
+**更新版本**
+
+```bash
+docker compose build --no-cache
+docker compose up -d
+```
+
+`data` 目录不受影响，配置与上传内容均会保留。
+
 ### systemd 常驻运行
 
 创建 `/etc/systemd/system/personal-website.service`：

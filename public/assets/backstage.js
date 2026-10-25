@@ -470,7 +470,7 @@
 
     $('avatarPreview').style.backgroundImage = s.avatar_url ? 'url("' + s.avatar_url + '")' : '';
     $('avatarPreview').textContent = s.avatar_url ? '' : '未设置';
-    var remote = s.bg_url_remote || '';
+    var remote = s.bg_remote_url || '';
     $('bgPreview').style.backgroundImage = (remote || s.bg_url) ? 'url("' + (remote || s.bg_url) + '")' : '';
     $('bgPreview').textContent = (remote || s.bg_url) ? '' : '未设置（使用内置渐变）';
     $('fBgUrl').value = remote;

@@ -1,0 +1,19 @@
+services:
+  personal-website:
+    build: .
+    image: personal-website:latest
+    container_name: personal-website
+    restart: unless-stopped
+    ports:
+      - "3011:3011"
+    environment:
+      - PORT=3011
+      - HOST=0.0.0.0
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3011/api/site').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
