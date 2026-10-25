@@ -63,7 +63,6 @@
 
     renderIdentity(site, displayName);
     renderAbout(site);
-    renderTelegram(site);
     renderSocials(data.socials || []);
     renderFooter(site);
 
@@ -89,10 +88,8 @@
 
   function applyAnimations(site) {
     var anim = site.animations || {};
-    var page = $('page');
 
-    if (anim.intro) page.classList.add('anim-intro');
-    else page.classList.add('no-anim-intro');
+    if (anim.intro) document.body.classList.add('intro-anim');
 
     if (!anim.avatar) $('avatarWrap').classList.remove('anim-avatar');
 
@@ -104,8 +101,8 @@
     $('name').textContent = site.site_name || displayName;
 
     var unEl = $('username');
-    if (site.nickname) unEl.textContent = site.nickname;
-    else unEl.hidden = true;
+    unEl.textContent = (site.nickname || '').trim() || '未设置';
+    unEl.hidden = false;
 
     setImage('avatar', 'avatarFallback', site.avatar_url, displayName);
     setImage('navAvatar', 'navAvatarFallback', site.avatar_url, displayName);
@@ -129,17 +126,7 @@
 
   function renderAbout(site) {
     var text = site.about_text || '';
-    if (text.trim()) $('aboutText').textContent = text;
-    else $('aboutCard').hidden = true;
-  }
-
-  function renderTelegram(site) {
-    if (!site.tg_enabled) return;
-    var card = $('tgCard');
-    card.href = site.tg_url || 'https://t.me/COASCN';
-    $('tgTitle').textContent = site.tg_title || '加入我的频道';
-    $('tgSub').textContent = site.tg_sub || '加入就是最大的帮助';
-    card.hidden = false;
+    $('aboutText').textContent = text.trim() || '未设置';
   }
 
   function renderSocials(socials) {
@@ -222,24 +209,30 @@
     var bgEl = $('bg');
     if (!bgEl) return;
 
+    var img = bgEl.style.backgroundImage;
+    if (!img || img === 'none') return;
+
+    var inner = document.createElement('div');
+    inner.style.cssText =
+      'position:absolute;top:-8%;left:-6%;width:112%;height:116%;' +
+      'background-image:' + img + ';' +
+      'background-size:cover;background-position:center center;' +
+      'background-repeat:no-repeat;transform:translateY(0);will-change:transform;';
+    bgEl.appendChild(inner);
+
     var targetY = window.scrollY || 0;
     var currentY = targetY;
-    var currentScale = 1.05;
-    var isScrolling = false;
     var stopTimer = null;
 
     window.addEventListener('scroll', function () {
       targetY = window.scrollY || 0;
-      isScrolling = true;
       clearTimeout(stopTimer);
-      stopTimer = setTimeout(function () { isScrolling = false; }, 200);
+      stopTimer = setTimeout(function () {}, 200);
     }, { passive: true });
 
     (function loop() {
-      currentY += (targetY * 0.05 - currentY) * 0.07;
-      var targetScale = isScrolling ? 1.1 : 1.05;
-      currentScale += (targetScale - currentScale) * 0.06;
-      bgEl.style.transform = 'scale(' + currentScale.toFixed(4) + ') translateY(' + currentY.toFixed(2) + 'px)';
+      currentY += (targetY * 0.04 - currentY) * 0.07;
+      inner.style.transform = 'translateY(' + currentY.toFixed(2) + 'px)';
       requestAnimationFrame(loop);
     })();
   }

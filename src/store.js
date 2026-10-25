@@ -11,7 +11,7 @@ const DEFAULTS = {
   security_entry: '',
   site_name: '海岸线',
   nickname: '',
-  about_text: '常年研究逆向工具软件，擅长搭建网站。',
+  about_text: '我很懒什么都没写。',
   avatar_key: '',
   bg_key: '',
   music_enabled: '1',

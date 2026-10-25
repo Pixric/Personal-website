@@ -250,9 +250,11 @@ input[type="range"]::-moz-range-thumb{
 .side-logo{
   width:30px; height:30px; border-radius:8px;
   display:flex; align-items:center; justify-content:center;
-  background:var(--text); color:#fff;
-  font-weight:600; font-size:13px; flex-shrink:0;
+  background:var(--bg-mute);
+  overflow:hidden; flex-shrink:0;
+  border:1px solid var(--border);
 }
+.side-logo img{ width:100%; height:100%; object-fit:cover; display:block; }
 .side-brand-text{ display:flex; flex-direction:column; min-width:0; }
 .side-brand-text b{ font-size:13.5px; font-weight:600; }
 .side-brand-text span{ font-size:11.5px; color:var(--text-3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
