@@ -261,6 +261,12 @@ function clampOpacity(v) {
   return Math.min(1, Math.max(0, n));
 }
 
+function num(v, fallback, min, max) {
+  const n = parseFloat(v);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
 function publicSite() {
   const s = store.getSettings();
   const tracks = store.allTracks();
@@ -276,6 +282,8 @@ function publicSite() {
       avatar_url: assetUrl(s.avatar_key),
       bg_url: assetUrl(s.bg_key),
       bg_remote_url: s.bg_url || '',
+      bg_api_enabled: s.bg_api_enabled === '1',
+      bg_api_preset: s.bg_api_preset || '',
       bg_position: s.bg_position || 'center center',
       bg_size_desktop: s.bg_size_desktop || 'cover',
       bg_size_mobile: s.bg_size_mobile || 'cover',
@@ -291,10 +299,15 @@ function publicSite() {
       tg_title: s.tg_title || '加入我的频道',
       tg_sub: s.tg_sub || '加入就是最大的帮助',
       tg_url: s.tg_url || 'https://t.me/COASCN',
+      dark_mode: s.dark_mode === '1',
+      dark_bg_dim: num(s.dark_bg_dim, 0, 0, 100),
       animations: {
         intro: s.anim_intro !== '0',
+        intro_duration: num(s.anim_intro_duration, 1, 0.2, 3),
         background: s.anim_bg !== '0',
+        bg_strength: num(s.anim_bg_strength, 1, 0, 3),
         reveal: s.anim_reveal !== '0',
+        reveal_distance: num(s.anim_reveal_distance, 18, 0, 80),
         avatar: s.anim_avatar !== '0',
         player: s.anim_player !== '0',
       },
@@ -325,17 +338,19 @@ function publicSite() {
 
 const EDITABLE = [
   'site_name', 'nickname', 'about_text', 'avatar_key', 'bg_key',
-  'bg_url', 'bg_position', 'bg_size_desktop', 'bg_size_mobile',
+  'bg_url', 'bg_api_enabled', 'bg_api_preset', 'bg_position', 'bg_size_desktop', 'bg_size_mobile',
   'font_key', 'font_family', 'font_scope',
   'music_enabled', 'music_mode', 'github_user', 'github_show_repos', 'github_show_chart',
-  'anim_intro', 'anim_bg', 'anim_reveal', 'anim_avatar', 'anim_player',
+  'anim_intro', 'anim_intro_duration', 'anim_bg', 'anim_bg_strength',
+  'anim_reveal', 'anim_reveal_distance', 'anim_avatar', 'anim_player',
+  'dark_mode', 'dark_bg_dim',
   'footer_text', 'footer_opacity', 'footer_color', 'footer_link',
   'tg_enabled', 'tg_title', 'tg_sub', 'tg_url', 'security_entry', 'site_url',
 ];
 
 const BOOL_KEYS = [
-  'music_enabled', 'github_show_repos', 'github_show_chart',
-  'anim_intro', 'anim_bg', 'anim_reveal', 'anim_avatar', 'anim_player', 'tg_enabled',
+  'music_enabled', 'github_show_repos', 'github_show_chart', 'bg_api_enabled',
+  'anim_intro', 'anim_bg', 'anim_reveal', 'anim_avatar', 'anim_player', 'tg_enabled', 'dark_mode',
 ];
 
 function adminState() {
@@ -346,6 +361,7 @@ function adminState() {
   settings.bg_url = assetUrl(s.bg_key);
   settings.bg_remote_url = s.bg_url || '';
   settings.font_url = assetUrl(s.font_key);
+  settings.has_uploaded_bg = Boolean(s.bg_key);
 
   return {
     ok: true,
@@ -720,8 +736,36 @@ async function api(req, res, pathname, method) {
       if ('footer_color' in patch && !/^#[0-9a-fA-F]{3,8}$/.test(patch.footer_color)) {
         patch.footer_color = '#8b8b8b';
       }
+      if ('anim_intro_duration' in patch) patch.anim_intro_duration = String(num(patch.anim_intro_duration, 1, 0.2, 3));
+      if ('anim_bg_strength' in patch) patch.anim_bg_strength = String(num(patch.anim_bg_strength, 1, 0, 3));
+      if ('anim_reveal_distance' in patch) patch.anim_reveal_distance = String(num(patch.anim_reveal_distance, 18, 0, 80));
+      if ('dark_bg_dim' in patch) patch.dark_bg_dim = String(num(patch.dark_bg_dim, 0, 0, 100));
+
+      if ('bg_api_preset' in patch) {
+        const p = String(patch.bg_api_preset || '').trim();
+        if (p && !/^https:\/\/[^\s]+$/i.test(p)) {
+          return sendJson(res, { ok: false, error: '接口地址需要以 https:// 开头' }, 400);
+        }
+        patch.bg_api_preset = p.slice(0, 500);
+      }
+
+      let removedBg = '';
+      if (patch.bg_api_enabled === '1') {
+        const cur = store.getSettings();
+        if (cur.bg_key) {
+          removedBg = cur.bg_key;
+          patch.bg_key = '';
+        }
+      }
+
       store.setSettings(patch);
-      return sendJson(res, { ok: true, updated: Object.keys(patch).length });
+      if (removedBg) deleteKey(removedBg);
+
+      return sendJson(res, {
+        ok: true,
+        updated: Object.keys(patch).length,
+        removed_uploaded_bg: Boolean(removedBg),
+      });
     }
 
     if (rest === 'credentials' && method === 'POST') {

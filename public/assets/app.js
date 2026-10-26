@@ -69,11 +69,13 @@
     renderSocials(data.socials || []);
     renderFooter(site);
 
+    applyTheme(site);
+
     $('page').hidden = false;
     $('boot').classList.add('hide');
 
     setupReveal(site);
-    if (site.animations && site.animations.background) setupParallax();
+    if (site.animations && site.animations.background) setupParallax(site);
 
     renderGitHub(site);
     setupPlayer(data, site);
@@ -81,7 +83,17 @@
 
   function applyBackground(site) {
     var bg = $('bg');
-    var src = site.bg_url || site.bg_remote_url || '';
+    var src = '';
+
+    if (site.bg_api_enabled) {
+      src = site.bg_api_preset || 'https://api.yppp.net/api';
+      src += (src.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now();
+    } else if (site.bg_remote_url) {
+      src = site.bg_remote_url;
+    } else if (site.bg_url) {
+      src = site.bg_url;
+    }
+
     if (src) {
       bg.style.backgroundImage = 'url("' + src.replace(/"/g, '%22') + '")';
       bg.style.backgroundPosition = site.bg_position || 'center center';
@@ -92,6 +104,26 @@
     } else {
       bg.style.backgroundImage = 'radial-gradient(1000px 600px at 15% -10%, #f3f3f4 0%, transparent 60%), radial-gradient(900px 500px at 95% 5%, #ededef 0%, transparent 55%), linear-gradient(180deg,#fafafa 0%,#f2f2f3 100%)';
       bg.style.filter = 'none';
+    }
+  }
+
+  function applyTheme(site) {
+    var dark = !!site.dark_mode;
+    document.documentElement.classList.toggle('dark', dark);
+    document.body.classList.toggle('dark', dark);
+
+    var old = document.getElementById('bgDimLayer');
+    if (old) old.remove();
+
+    var dim = Number(site.dark_bg_dim || 0);
+    if (dark && dim > 0) {
+      var layer = document.createElement('div');
+      layer.id = 'bgDimLayer';
+      layer.style.cssText =
+        'position:fixed;inset:0;z-index:1;pointer-events:none;' +
+        'background:rgba(0,0,0,' + (dim / 100) + ');';
+      var bgEl = $('bg');
+      if (bgEl && bgEl.parentNode) bgEl.parentNode.insertBefore(layer, bgEl.nextSibling);
     }
   }
 
@@ -109,7 +141,12 @@
   function applyAnimations(site) {
     var anim = site.animations || {};
 
-    if (anim.intro) document.body.classList.add('intro-anim');
+    if (anim.intro) {
+      var dur = Number(anim.intro_duration);
+      if (!isFinite(dur) || dur <= 0) dur = 1;
+      document.documentElement.style.setProperty('--intro-dur', dur + 's');
+      document.body.classList.add('intro-anim');
+    }
 
     if (!anim.avatar) $('avatarWrap').classList.remove('anim-avatar');
 
@@ -213,7 +250,13 @@
       return;
     }
 
-    items.forEach(function (el, i) { el.style.transitionDelay = (0.05 * i) + 's'; });
+    var dist = Number(anim.reveal_distance);
+    if (!isFinite(dist)) dist = 18;
+    document.documentElement.style.setProperty('--reveal-dist', dist + 'px');
+
+    items.forEach(function (el, i) {
+      el.style.transitionDelay = Math.min(0.05 * i, 0.4) + 's';
+    });
 
     if (!('IntersectionObserver' in window)) {
       items.forEach(function (el) { el.classList.add('in-view'); });
@@ -227,39 +270,68 @@
           io.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.1 });
+    }, { threshold: 0, rootMargin: '0px 0px -30px 0px' });
 
     items.forEach(function (el) { io.observe(el); });
+
+    setTimeout(function () {
+      items.forEach(function (el) {
+        var r = el.getBoundingClientRect();
+        if (r.top < window.innerHeight && r.bottom > 0) el.classList.add('in-view');
+      });
+    }, 120);
   }
 
-  function setupParallax() {
+  function setupParallax(site) {
     var bgEl = $('bg');
     if (!bgEl) return;
+
+    var anim = site.animations || {};
+    var strength = Number(anim.bg_strength);
+    if (!isFinite(strength) || strength <= 0) strength = 1;
 
     var img = bgEl.style.backgroundImage;
     if (!img || img === 'none') return;
 
+    var pos = site.bg_position || 'center center';
+    var sizeDesktop = site.bg_size_desktop || 'cover';
+    var sizeMobile = site.bg_size_mobile || 'cover';
+
+    bgEl.style.backgroundImage = 'none';
+    bgEl.style.filter = 'none';
+
     var inner = document.createElement('div');
+    inner.className = 'bg-inner';
     inner.style.cssText =
-      'position:absolute;top:-8%;left:-6%;width:112%;height:116%;' +
+      'position:absolute;top:0;left:0;right:0;bottom:0;' +
       'background-image:' + img + ';' +
-      'background-size:cover;background-position:center center;' +
-      'background-repeat:no-repeat;transform:translateY(0);will-change:transform;';
+      'background-position:' + pos + ';' +
+      'background-repeat:no-repeat;' +
+      'background-size:' + (window.matchMedia('(max-width: 768px)').matches ? sizeMobile : sizeDesktop) + ';' +
+      'transform:translate3d(0,0,0);will-change:transform;';
     bgEl.appendChild(inner);
 
-    var targetY = window.scrollY || 0;
-    var currentY = targetY;
-    var stopTimer = null;
+    var targetShift = 0;
+    var currentShift = 0;
+    var targetScale = 1;
+    var currentScale = 1;
 
-    window.addEventListener('scroll', function () {
-      targetY = window.scrollY || 0;
-      clearTimeout(stopTimer);
-      stopTimer = setTimeout(function () {}, 200);
-    }, { passive: true });
+    function compute() {
+      var maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      var progress = Math.min(1, Math.max(0, (window.scrollY || 0) / maxScroll));
+      targetShift = progress * 40 * strength;
+      targetScale = 1 + 0.06 * strength * progress;
+    }
+
+    compute();
+    window.addEventListener('scroll', compute, { passive: true });
+    window.addEventListener('resize', compute, { passive: true });
 
     (function loop() {
-      currentY += (targetY * 0.04 - currentY) * 0.07;
-      inner.style.transform = 'translateY(' + currentY.toFixed(2) + 'px)';
+      currentShift += (targetShift - currentShift) * 0.08;
+      currentScale += (targetScale - currentScale) * 0.08;
+      inner.style.transform =
+        'translate3d(0,' + currentShift.toFixed(2) + 'px,0) scale(' + currentScale.toFixed(4) + ')';
       requestAnimationFrame(loop);
     })();
   }

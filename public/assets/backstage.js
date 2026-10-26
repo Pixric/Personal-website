@@ -472,9 +472,14 @@
     $('avatarPreview').style.backgroundImage = s.avatar_url ? 'url("' + s.avatar_url + '")' : '';
     $('avatarPreview').textContent = s.avatar_url ? '' : '未设置';
     var remote = s.bg_remote_url || '';
-    $('bgPreview').style.backgroundImage = (remote || s.bg_url) ? 'url("' + (remote || s.bg_url) + '")' : '';
-    $('bgPreview').textContent = (remote || s.bg_url) ? '' : '未设置（使用内置渐变）';
+    var apiOn = s.bg_api_enabled === '1';
+    var shownBg = apiOn ? (s.bg_api_preset || 'https://api.yppp.net/api') : (remote || s.bg_url);
+    $('bgPreview').style.backgroundImage = shownBg ? 'url("' + shownBg + '")' : '';
+    $('bgPreview').textContent = shownBg ? '' : '未设置（使用内置渐变）';
     $('fBgUrl').value = remote;
+    $('fBgApiEnabled').checked = apiOn;
+    $('fBgApiPreset').value = s.bg_api_preset || '';
+    $('bgApiWrap').hidden = !apiOn;
     $('fBgPosition').value = s.bg_position || 'center center';
     $('fBgSizeDesktop').value = s.bg_size_desktop || 'cover';
     $('fBgSizeMobile').value = s.bg_size_mobile || 'cover';
@@ -497,6 +502,13 @@
       var el = document.querySelector('[data-anim="' + k + '"]');
       if (el) el.checked = s[k] === '1';
     });
+
+    syncAnimControls(s);
+
+    $('darkMode').checked = s.dark_mode === '1';
+    $('darkBgDim').value = parseInt(s.dark_bg_dim || '0', 10);
+    $('darkBgDimVal').textContent = (s.dark_bg_dim || '0') + '%';
+    $('darkDimWrap').style.display = s.dark_mode === '1' ? '' : 'none';
 
     $('musicEnabled').checked = s.music_enabled === '1';
     $('musicMode').value = s.music_mode === 'random' ? 'random' : 'default';
@@ -528,6 +540,48 @@
       $('fRecover').value = location.origin + '/backstage?recover=' + state.recovery_token;
     }
     $('viewSite').href = '/';
+
+    $('aboutVersion').textContent = 'v' + (window.__APP_VERSION__ || '1.0.0');
+    $('aboutSiteUrl').textContent = location.origin;
+    $('aboutVisits').textContent = String(state.visits || 0) + ' 次';
+    var total = (state.files || []).reduce(function (a, f) { return a + (f.size || 0); }, 0);
+    $('aboutStorage').textContent = (total / 1048576).toFixed(1) + ' MB · ' + (state.files || []).length + ' 个文件';
+  }
+
+  function syncAnimControls(s) {
+    var v;
+
+    v = parseFloat(s.anim_intro_duration);
+    if (!isFinite(v)) v = 1;
+    $('animIntroDur').value = v;
+    $('animIntroDurVal').textContent = v.toFixed(1) + 's';
+
+    v = parseFloat(s.anim_bg_strength);
+    if (!isFinite(v)) v = 1;
+    $('animBgStrength').value = v;
+    $('animBgStrengthVal').textContent = v.toFixed(1) + '\u00d7';
+
+    v = parseFloat(s.anim_reveal_distance);
+    if (!isFinite(v)) v = 18;
+    $('animRevealDist').value = v;
+    $('animRevealDistVal').textContent = Math.round(v) + 'px';
+
+    syncAnimBlockState();
+  }
+
+  function syncAnimBlockState() {
+    var map = [
+      ['anim_intro', 'introDurWrap'],
+      ['anim_bg', 'bgStrengthWrap'],
+      ['anim_reveal', 'revealDistWrap'],
+    ];
+    map.forEach(function (pair) {
+      var cb = document.querySelector('[data-anim="' + pair[0] + '"]');
+      var wrap = $(pair[1]);
+      if (!cb || !wrap) return;
+      var block = wrap.parentElement;
+      if (block) block.classList.toggle('disabled', !cb.checked);
+    });
   }
 
   function updateGhLink() {
@@ -707,6 +761,97 @@
       .then(function () { msg(el, '已保存', 'success'); toast('外观设置已保存', 'success'); })
       .catch(function (e) { msg(el, e.message, 'error'); })
       .finally(function () { btn.disabled = false; });
+  });
+
+  $('saveAnim').addEventListener('click', function () {
+    var btn = $('saveAnim');
+    var el = $('animMsg');
+    btn.disabled = true;
+    var body = {};
+    Array.prototype.forEach.call(document.querySelectorAll('[data-anim]'), function (x) {
+      body[x.getAttribute('data-anim')] = x.checked;
+    });
+    body.anim_intro_duration = $('animIntroDur').value;
+    body.anim_bg_strength = $('animBgStrength').value;
+    body.anim_reveal_distance = $('animRevealDist').value;
+    msg(el, '保存中…');
+    api('/admin/settings', { method: 'PUT', body: body })
+      .then(function () { msg(el, '已保存', 'success'); toast('动画设置已保存', 'success'); })
+      .catch(function (e) { msg(el, e.message, 'error'); })
+      .finally(function () { btn.disabled = false; });
+  });
+
+  $('animIntroDur').addEventListener('input', function () {
+    $('animIntroDurVal').textContent = parseFloat(this.value).toFixed(1) + 's';
+  });
+  $('animBgStrength').addEventListener('input', function () {
+    $('animBgStrengthVal').textContent = parseFloat(this.value).toFixed(1) + '\u00d7';
+  });
+  $('animRevealDist').addEventListener('input', function () {
+    $('animRevealDistVal').textContent = Math.round(this.value) + 'px';
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-anim]'), function (cb) {
+    cb.addEventListener('change', syncAnimBlockState);
+  });
+
+  $('darkMode').addEventListener('change', function () {
+    var on = this.checked;
+    $('darkDimWrap').style.display = on ? '' : 'none';
+    api('/admin/settings', { method: 'PUT', body: { dark_mode: on } })
+      .then(function () { toast('已' + (on ? '开启' : '关闭') + '暗色主题', 'success'); })
+      .catch(function (e) { toast(e.message, 'error'); });
+  });
+
+  $('darkBgDim').addEventListener('input', function () {
+    $('darkBgDimVal').textContent = this.value + '%';
+  });
+  $('darkBgDim').addEventListener('change', function () {
+    api('/admin/settings', { method: 'PUT', body: { dark_bg_dim: this.value } })
+      .catch(function (e) { toast(e.message, 'error'); });
+  });
+
+  $('fBgApiEnabled').addEventListener('change', function () {
+    var on = this.checked;
+    $('bgApiWrap').hidden = !on;
+    if (!on) return;
+    var preset = $('fBgApiPreset').value.trim() || 'https://api.yppp.net/api';
+    $('fBgApiPreset').value = preset;
+    var hasUploaded = state.settings.has_uploaded_bg;
+    var warn = hasUploaded ? '开启后将删除已上传的背景图，确定吗？' : '开启随机图片 API？';
+    if (!confirm(warn)) {
+      this.checked = false;
+      $('bgApiWrap').hidden = true;
+      return;
+    }
+    api('/admin/settings', {
+      method: 'PUT',
+      body: { bg_api_enabled: true, bg_api_preset: preset },
+    }).then(function (r) {
+      if (r.removed_uploaded_bg) toast('已开启 API，并删除已上传的背景图', 'success');
+      else toast('已开启随机图片 API', 'success');
+      loadState();
+    }).catch(function (e) {
+      toast(e.message, 'error');
+      this.checked = false;
+    });
+  });
+
+  $('useRecommendedApi').addEventListener('click', function () {
+    $('fBgApiPreset').value = 'https://api.yppp.net/api';
+    $('bgPreview').style.backgroundImage = 'url("https://api.yppp.net/api")';
+    $('bgPreview').textContent = '';
+  });
+
+  $('copyRepo').addEventListener('click', function () {
+    var url = 'https://github.com/Pixric/Personal-website';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () {
+        toast('仓库地址已复制', 'success');
+      }).catch(function () { toast(url, 'info'); });
+    } else {
+      toast(url, 'info');
+    }
   });
 
   $('saveTg').addEventListener('click', function () {
