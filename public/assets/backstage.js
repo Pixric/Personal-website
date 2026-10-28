@@ -453,7 +453,208 @@
         v.hidden = (v.id !== 'view-' + view);
       });
       location.hash = view;
+      if (view === 'stats') loadStats();
     });
+  });
+
+  (function setupNav() {
+    var search = $('navSearch');
+    var groups = Array.prototype.slice.call(document.querySelectorAll('.nav-group'));
+
+    groups.forEach(function (g) {
+      var head = g.querySelector('.nav-group-head');
+      if (!head) return;
+      head.addEventListener('click', function () {
+        g.classList.toggle('collapsed');
+      });
+    });
+
+    function applyFilter(kw) {
+      var q = String(kw || '').trim().toLowerCase();
+      Array.prototype.forEach.call(document.querySelectorAll('.nav-item'), function (item) {
+        var view = item.getAttribute('data-view') || '';
+        var text = (item.querySelector('.nav-text') || item).textContent.toLowerCase();
+        var match = !q || text.indexOf(q) >= 0 || view.indexOf(q) >= 0;
+        item.classList.toggle('hide-by-search', !match);
+      });
+
+      groups.forEach(function (g) {
+        var visible = g.querySelectorAll('.nav-item:not(.hide-by-search)').length;
+        g.classList.toggle('hide-by-search', visible === 0);
+        if (q) g.classList.remove('collapsed');
+      });
+    }
+
+    if (search) {
+      search.addEventListener('input', function () { applyFilter(this.value); });
+      search.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { this.value = ''; applyFilter(''); }
+      });
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (search) search.focus();
+      }
+    });
+
+    var toggle = $('sideToggle');
+    var backdrop = $('sideBackdrop');
+    var side = document.querySelector('.side');
+    function closeSide() {
+      if (side) side.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('show');
+    }
+    if (toggle) {
+      toggle.addEventListener('click', function () {
+        if (side) side.classList.toggle('open');
+        if (backdrop) backdrop.classList.toggle('show');
+      });
+    }
+    if (backdrop) backdrop.addEventListener('click', closeSide);
+
+    Array.prototype.forEach.call(document.querySelectorAll('.nav-item'), function (item) {
+      item.addEventListener('click', function () {
+        if (window.innerWidth <= 760) closeSide();
+      });
+    });
+  })();
+
+  var statCache = null;
+
+  function renderStats() {
+    if (!statCache) return;
+    var d = statCache;
+
+    $('statTodayUnique').textContent = d.today.uniques;
+    $('statTodayVisits').textContent = d.today.visits;
+    $('statTotalUnique').textContent = d.total.uniques;
+    $('statTotalVisits').textContent = d.total.visits;
+
+    $('statTodayUniqueSub').textContent = '昨日 ' + d.yesterday.uniques;
+    $('statTodayVisitsSub').textContent = '昨日 ' + d.yesterday.visits;
+
+    drawChart(d.series);
+
+    var body = $('statTableBody');
+    body.innerHTML = '';
+    var rows = d.series.slice().reverse();
+    rows.forEach(function (r) {
+      var avg = r.uniques > 0 ? (r.visits / r.uniques).toFixed(1) : '—';
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + esc(r.date) + '</td>' +
+        '<td class="num">' + r.uniques + '</td>' +
+        '<td class="num">' + r.visits + '</td>' +
+        '<td class="num">' + avg + '</td>';
+      body.appendChild(tr);
+    });
+  }
+
+  function drawChart(series) {
+    var svg = $('statChart');
+    if (!svg) return;
+    var W = 720, H = 220;
+    var padL = 34, padR = 10, padT = 14, padB = 26;
+    var innerW = W - padL - padR;
+    var innerH = H - padT - padB;
+
+    var maxU = 1, maxV = 1;
+    series.forEach(function (p) {
+      if (p.uniques > maxU) maxU = p.uniques;
+      if (p.visits > maxV) maxV = p.visits;
+    });
+    var maxY = Math.max(maxU, maxV);
+    var step = Math.max(1, Math.ceil(maxY / 4));
+    maxY = step * 4;
+
+    var n = series.length || 1;
+    function xAt(i) { return padL + (n === 1 ? innerW / 2 : (innerW * i) / (n - 1)); }
+    function yAt(v) { return padT + innerH - (v / maxY) * innerH; }
+
+    var parts = [];
+
+    for (var g = 0; g <= 4; g++) {
+      var val = step * g;
+      var y = yAt(val);
+      parts.push('<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y +
+        '" stroke="var(--border)" stroke-width="1" stroke-dasharray="3 4"/>');
+      parts.push('<text x="' + (padL - 8) + '" y="' + (y + 4) +
+        '" text-anchor="end" font-size="10" fill="var(--text-3)">' + val + '</text>');
+    }
+
+    function linePath(key) {
+      var d = '';
+      series.forEach(function (p, i) {
+        var x = xAt(i), y = yAt(p[key]);
+        d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1) + ' ';
+      });
+      return d.trim();
+    }
+
+    parts.push('<path d="' + linePath('visits') + '" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>');
+    parts.push('<path d="' + linePath('uniques') + '" fill="none" stroke="var(--text)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>');
+
+    var labelEvery = Math.ceil(n / 7);
+    series.forEach(function (p, i) {
+      if (i % labelEvery !== 0 && i !== n - 1) return;
+      var x = xAt(i);
+      parts.push('<circle cx="' + x + '" cy="' + yAt(p.visits) + '" r="2.6" fill="var(--text-3)"/>');
+      parts.push('<circle cx="' + x + '" cy="' + yAt(p.uniques) + '" r="3" fill="var(--text)"/>');
+      parts.push('<text x="' + x + '" y="' + (H - 6) +
+        '" text-anchor="middle" font-size="10" fill="var(--text-3)">' + p.date.slice(5) + '</text>');
+    });
+
+    svg.innerHTML = parts.join('');
+  }
+
+  function loadStats() {
+    var days = ($('statRange') && $('statRange').value) || '14';
+    return api('/admin/stats?days=' + days).then(function (d) {
+      statCache = d;
+      renderStats();
+    }).catch(function (e) { toast(e.message, 'error'); });
+  }
+
+  $('statRange').addEventListener('change', loadStats);
+
+  $('resetStats').addEventListener('click', function () {
+    if (!confirm('确定清空所有访问统计？此操作不可恢复。')) return;
+    api('/admin/stats/reset', { method: 'POST' })
+      .then(function () {
+        toast('统计数据已清空', 'success');
+        loadStats();
+      })
+      .catch(function (e) { toast(e.message, 'error'); });
+  });
+
+  var roundTouched = false;
+  function applyUiRound(val) {
+    var k = Math.max(0, Math.min(100, Number(val) || 0)) / 100;
+    var root = document.documentElement;
+    if (k > 0) {
+      root.style.setProperty('--radius', Math.round(12 + 20 * k) + 'px');
+      root.style.setProperty('--radius-lg', Math.round(16 + 26 * k) + 'px');
+      root.style.setProperty('--radius-sm', Math.round(8 + 16 * k) + 'px');
+    } else {
+      root.style.removeProperty('--radius');
+      root.style.removeProperty('--radius-lg');
+      root.style.removeProperty('--radius-sm');
+    }
+    $('uiRoundVal').textContent = Math.round(k * 100) + '%';
+  }
+
+  $('uiRound').addEventListener('input', function () {
+    roundTouched = true;
+    applyUiRound(this.value);
+  });
+
+  $('uiRound').addEventListener('change', function () {
+    var v = this.value;
+    api('/admin/settings', { method: 'PUT', body: { ui_round: v } })
+      .then(function () { toast('圆润度已保存', 'success'); })
+      .catch(function (e) { toast(e.message, 'error'); });
   });
 
   $('logoutBtn').addEventListener('click', function () {
@@ -509,6 +710,11 @@
     $('darkBgDim').value = parseInt(s.dark_bg_dim || '0', 10);
     $('darkBgDimVal').textContent = (s.dark_bg_dim || '0') + '%';
     $('darkDimWrap').style.display = s.dark_mode === '1' ? '' : 'none';
+
+    var roundVal = parseInt(s.ui_round || '0', 10);
+    if (!isFinite(roundVal)) roundVal = 0;
+    $('uiRound').value = roundVal;
+    if (!roundTouched) applyUiRound(roundVal);
 
     $('musicEnabled').checked = s.music_enabled === '1';
     $('musicMode').value = s.music_mode === 'random' ? 'random' : 'default';

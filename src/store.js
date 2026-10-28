@@ -38,6 +38,7 @@ const DEFAULTS = {
   anim_player: '1',
   dark_mode: '0',
   dark_bg_dim: '0',
+  ui_round: '0',
   footer_text: '',
   footer_opacity: '0.55',
   footer_color: '#8b8b8b',
@@ -59,6 +60,7 @@ function emptyState() {
     socials: [],
     assets: [],
     seq: { admins: 0, tracks: 0, socials: 0 },
+    stats: { days: {}, visitors: [], visits: 0 },
   };
 }
 
@@ -82,6 +84,7 @@ export function load() {
         socials: Array.isArray(raw.socials) ? raw.socials : [],
         assets: Array.isArray(raw.assets) ? raw.assets : [],
         seq: raw.seq || { admins: 0, tracks: 0, socials: 0 },
+        stats: raw.stats || { days: {}, visitors: [], visits: 0 },
       };
     } catch {
       const bak = DB_FILE + '.corrupt-' + Date.now();
@@ -132,6 +135,95 @@ export function ensureRecoveryToken(token) {
     save();
   }
   return s.settings.recovery_token || '';
+}
+
+const MAX_DAY_KEYS = 400;
+const MAX_VISITOR_IDS = 5000;
+
+function dayKey(d) {
+  const dt = d ? new Date(d) : new Date();
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+export function recordVisit(visitorId) {
+  const s = load();
+  if (!s.stats) s.stats = { days: {}, visitors: [], visits: 0 };
+
+  const key = dayKey();
+  const days = s.stats.days || (s.stats.days = {});
+  if (!days[key]) days[key] = { visits: 0, uniques: 0, ids: [] };
+
+  const bucket = days[key];
+  bucket.visits = (bucket.visits || 0) + 1;
+  s.stats.visits = (s.stats.visits || 0) + 1;
+
+  let isNew = false;
+  if (visitorId) {
+    const ids = Array.isArray(bucket.ids) ? bucket.ids : (bucket.ids = []);
+    if (!ids.includes(visitorId)) {
+      ids.push(visitorId);
+      if (ids.length > MAX_VISITOR_IDS) ids.splice(0, ids.length - MAX_VISITOR_IDS);
+      bucket.uniques = ids.length;
+      isNew = true;
+    }
+  }
+
+  const keys = Object.keys(days).sort();
+  if (keys.length > MAX_DAY_KEYS) {
+    for (const k of keys.slice(0, keys.length - MAX_DAY_KEYS)) delete days[k];
+  }
+
+  save();
+  return { isNew, visits: bucket.visits, uniques: bucket.uniques || 0, day: key };
+}
+
+export function visitStats(days1) {
+  const s = load();
+  const stats = s.stats || { days: {}, visits: 0 };
+  const all = stats.days || {};
+
+  const n = Math.max(1, Math.min(120, parseInt(days1, 10) || 14));
+  const out = [];
+  const today = new Date();
+
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+    const key = dayKey(d);
+    const bucket = all[key] || { visits: 0, uniques: 0 };
+    out.push({ date: key, visits: bucket.visits || 0, uniques: bucket.uniques || 0 });
+  }
+
+  let totalVisits = 0;
+  let totalUniques = 0;
+  const seen = new Set();
+  for (const k of Object.keys(all)) {
+    const b = all[k];
+    totalVisits += b.visits || 0;
+    for (const id of (b.ids || [])) seen.add(id);
+  }
+  totalUniques = seen.size;
+
+  const todayKey = dayKey();
+  const t = all[todayKey] || { visits: 0, uniques: 0 };
+  const yKey = dayKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1));
+  const y = all[yKey] || { visits: 0, uniques: 0 };
+
+  return {
+    series: out,
+    total: { visits: totalVisits, uniques: totalUniques },
+    today: { visits: t.visits || 0, uniques: t.uniques || 0, date: todayKey },
+    yesterday: { visits: y.visits || 0, uniques: y.uniques || 0, date: yKey },
+  };
+}
+
+export function resetVisitStats() {
+  const s = load();
+  s.stats = { days: {}, visitors: [], visits: 0 };
+  s.settings.visits = '0';
+  save();
 }
 
 export function findAdminByName(username) {

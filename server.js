@@ -301,6 +301,7 @@ function publicSite() {
       tg_url: s.tg_url || 'https://t.me/COASCN',
       dark_mode: s.dark_mode === '1',
       dark_bg_dim: num(s.dark_bg_dim, 0, 0, 100),
+      ui_round: num(s.ui_round, 0, 0, 100),
       animations: {
         intro: s.anim_intro !== '0',
         intro_duration: num(s.anim_intro_duration, 1, 0.2, 3),
@@ -343,7 +344,7 @@ const EDITABLE = [
   'music_enabled', 'music_mode', 'github_user', 'github_show_repos', 'github_show_chart',
   'anim_intro', 'anim_intro_duration', 'anim_bg', 'anim_bg_strength',
   'anim_reveal', 'anim_reveal_distance', 'anim_avatar', 'anim_player',
-  'dark_mode', 'dark_bg_dim',
+  'dark_mode', 'dark_bg_dim', 'ui_round',
   'footer_text', 'footer_opacity', 'footer_color', 'footer_link',
   'tg_enabled', 'tg_title', 'tg_sub', 'tg_url', 'security_entry', 'site_url',
 ];
@@ -677,9 +678,24 @@ async function api(req, res, pathname, method) {
   }
 
   if (pathname === '/api/visit' && method === 'POST') {
-    const s = store.getSettings();
-    store.setSettings({ visits: String((parseInt(s.visits || '0', 10) || 0) + 1) });
-    return sendJson(res, { ok: true });
+    let visitorId = '';
+    const cookieHeader = req.headers.cookie || '';
+    const m = /(?:^|;\s*)pw_visitor=([A-Za-z0-9_-]{8,64})/.exec(cookieHeader);
+    if (m) visitorId = m[1];
+
+    let setCookie = false;
+    if (!visitorId) {
+      visitorId = b64url(crypto.randomBytes(16));
+      setCookie = true;
+    }
+
+    const r = store.recordVisit(visitorId);
+    const headers = {};
+    if (setCookie) {
+      headers['set-cookie'] =
+        'pw_visitor=' + visitorId + '; Path=/; Max-Age=' + (400 * 24 * 3600) + '; SameSite=Lax; HttpOnly';
+    }
+    return sendJson(res, { ok: true, is_new: r.isNew }, 200, headers);
   }
 
   if (pathname.startsWith('/api/admin/')) {
@@ -699,6 +715,16 @@ async function api(req, res, pathname, method) {
     }
 
     if (rest === 'state' && method === 'GET') return sendJson(res, adminState());
+
+    if (rest === 'stats' && method === 'GET') {
+      const days = url.searchParams.get('days');
+      return sendJson(res, Object.assign({ ok: true }, store.visitStats(days)));
+    }
+
+    if (rest === 'stats/reset' && method === 'POST') {
+      store.resetVisitStats();
+      return sendJson(res, { ok: true });
+    }
     if (rest === 'upload' && method === 'POST') return handleUpload(req, res);
 
     if (rest === 'cover-search' && method === 'GET') {
@@ -740,6 +766,7 @@ async function api(req, res, pathname, method) {
       if ('anim_bg_strength' in patch) patch.anim_bg_strength = String(num(patch.anim_bg_strength, 1, 0, 3));
       if ('anim_reveal_distance' in patch) patch.anim_reveal_distance = String(num(patch.anim_reveal_distance, 18, 0, 80));
       if ('dark_bg_dim' in patch) patch.dark_bg_dim = String(num(patch.dark_bg_dim, 0, 0, 100));
+      if ('ui_round' in patch) patch.ui_round = String(num(patch.ui_round, 0, 0, 100));
 
       if ('bg_api_preset' in patch) {
         const p = String(patch.bg_api_preset || '').trim();

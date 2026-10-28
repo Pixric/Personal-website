@@ -58,6 +58,7 @@
     applyBackground(site);
     applyFont(site);
     applyAnimations(site);
+    trackVisit();
 
     var displayName = site.site_name || '我的主页';
     document.title = displayName;
@@ -112,6 +113,17 @@
     document.documentElement.classList.toggle('dark', dark);
     document.body.classList.toggle('dark', dark);
 
+    var round = Number(site.ui_round || 0);
+    if (isFinite(round) && round > 0) {
+      var k = round / 100;
+      var root = document.documentElement;
+      root.style.setProperty('--radius', Math.round(12 + 20 * k) + 'px');
+      root.style.setProperty('--radius-lg', Math.round(16 + 26 * k) + 'px');
+      root.classList.add('ui-round');
+    } else {
+      document.documentElement.classList.remove('ui-round');
+    }
+
     var old = document.getElementById('bgDimLayer');
     if (old) old.remove();
 
@@ -125,6 +137,12 @@
       var bgEl = $('bg');
       if (bgEl && bgEl.parentNode) bgEl.parentNode.insertBefore(layer, bgEl.nextSibling);
     }
+  }
+
+  function trackVisit() {
+    try {
+      fetch('/api/visit', { method: 'POST', credentials: 'same-origin' }).catch(function () {});
+    } catch (e) {}
   }
 
   function applyFont(site) {

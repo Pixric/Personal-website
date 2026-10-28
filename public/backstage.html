@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex, nofollow" />
 <title>后台管理</title>
-<link rel="stylesheet" href="/assets/backstage.css?v=9" />
-<link rel="stylesheet" href="/assets/cropper.min.css?v=9" />
-<link rel="stylesheet" href="/assets/cover.css?v=9" />
+<link rel="stylesheet" href="/assets/backstage.css?v=10" />
+<link rel="stylesheet" href="/assets/cropper.min.css?v=10" />
+<link rel="stylesheet" href="/assets/cover.css?v=10" />
 </head>
 <body>
 
@@ -105,6 +105,11 @@
 
 <div class="admin" id="admin" hidden>
 
+  <button class="side-toggle" id="sideToggle" type="button" aria-label="打开菜单">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+  <div class="side-backdrop" id="sideBackdrop"></div>
+
   <aside class="side">
     <div class="side-brand">
       <div class="side-logo"><img src="/assets/logo.png" alt="logo" /></div>
@@ -114,50 +119,75 @@
       </div>
     </div>
 
+    <div class="side-search">
+      <svg class="side-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input type="search" id="navSearch" placeholder="快速搜索…" spellcheck="false" />
+    </div>
+
     <nav class="side-nav" id="sideNav">
       <button class="nav-item active" data-view="profile" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>
-        基本资料
+        <span class="nav-text">基本资料</span>
       </button>
 
-      <div class="nav-group">
-        <span class="nav-group-label">内容</span>
-        <button class="nav-item" data-view="music" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="M10 18V6l11-2v12"/></svg>
-          音乐管理
+      <button class="nav-item" data-view="stats" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>
+        <span class="nav-text">访问统计</span>
+      </button>
+
+      <div class="nav-group" data-group="content">
+        <button class="nav-group-head" type="button">
+          <span>内容</span>
+          <svg class="nav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
-        <button class="nav-item" data-view="socials" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
-          社交链接
-        </button>
-        <button class="nav-item" data-view="github" type="button">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.487 2 12.02c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.009-.868-.014-1.703-2.782.606-3.369-1.343-3.369-1.343-.455-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.531 2.341 1.089 2.91.833.091-.647.35-1.089.636-1.34-2.221-.253-4.556-1.113-4.556-4.951 0-1.093.39-1.987 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.65.64.702 1.028 1.596 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.31.678.921.678 1.856 0 1.34-.012 2.42-.012 2.75 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.02C22 6.487 17.523 2 12 2Z"/></svg>
-          GitHub 集成
-        </button>
-        <button class="nav-item" data-view="footer" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 15h18"/></svg>
-          页脚与备案
-        </button>
+        <div class="nav-group-body">
+          <button class="nav-item" data-view="music" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="M10 18V6l11-2v12"/></svg>
+            <span class="nav-text">音乐管理</span>
+          </button>
+          <button class="nav-item" data-view="socials" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+            <span class="nav-text">社交链接</span>
+          </button>
+          <button class="nav-item" data-view="github" type="button">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.487 2 12.02c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.009-.868-.014-1.703-2.782.606-3.369-1.343-3.369-1.343-.455-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.531 2.341 1.089 2.91.833.091-.647.35-1.089.636-1.34-2.221-.253-4.556-1.113-4.556-4.951 0-1.093.39-1.987 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.65.64.702 1.028 1.596 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.31.678.921.678 1.856 0 1.34-.012 2.42-.012 2.75 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.02C22 6.487 17.523 2 12 2Z"/></svg>
+            <span class="nav-text">GitHub 集成</span>
+          </button>
+          <button class="nav-item" data-view="footer" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 15h18"/></svg>
+            <span class="nav-text">页脚与备案</span>
+          </button>
+        </div>
       </div>
 
-      <div class="nav-group">
-        <span class="nav-group-label">外观</span>
-        <button class="nav-item" data-view="appearance" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2M12 19v2M5 12H3M21 12h-2M6.3 6.3 4.9 4.9M19.1 19.1l-1.4-1.4M17.7 6.3l1.4-1.4M4.9 19.1l1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg>
-          主题与动画
+      <div class="nav-group" data-group="look">
+        <button class="nav-group-head" type="button">
+          <span>外观</span>
+          <svg class="nav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
+        <div class="nav-group-body">
+          <button class="nav-item" data-view="appearance" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2M12 19v2M5 12H3M21 12h-2M6.3 6.3 4.9 4.9M19.1 19.1l-1.4-1.4M17.7 6.3l1.4-1.4M4.9 19.1l1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg>
+            <span class="nav-text">主题与动画</span>
+          </button>
+        </div>
       </div>
 
-      <div class="nav-group">
-        <span class="nav-group-label">设置</span>
-        <button class="nav-item" data-view="security" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.4 8.4-8 9-4.6-.6-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
-          安全与账号
+      <div class="nav-group" data-group="settings">
+        <button class="nav-group-head" type="button">
+          <span>设置</span>
+          <svg class="nav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
-        <button class="nav-item" data-view="about" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.5" r=".8" fill="currentColor" stroke="none"/></svg>
-          关于
-        </button>
+        <div class="nav-group-body">
+          <button class="nav-item" data-view="security" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.4 8.4-8 9-4.6-.6-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+            <span class="nav-text">安全与账号</span>
+          </button>
+          <button class="nav-item" data-view="about" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.5" r=".8" fill="currentColor" stroke="none"/></svg>
+            <span class="nav-text">关于</span>
+          </button>
+        </div>
       </div>
     </nav>
 
@@ -335,6 +365,22 @@
             <span class="slider-val" id="darkBgDimVal">0%</span>
           </div>
           <span class="field-hint">暗色主题下给背景图叠加黑色遮罩，让文字更清晰。</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>界面圆润度</h3>
+        <div class="slider-field">
+          <span class="field-label">圆角程度</span>
+          <div class="slider-row">
+            <input type="range" id="uiRound" min="0" max="100" step="5" />
+            <span class="slider-val" id="uiRoundVal">0%</span>
+          </div>
+          <span class="field-hint">调大后所有卡片、按钮、输入框的圆角都会变圆润。</span>
+        </div>
+        <div class="round-preview">
+          <div class="round-demo" id="roundDemo">预览</div>
+          <div class="round-demo round-demo-btn" id="roundDemoBtn">按钮</div>
         </div>
       </div>
 
@@ -659,6 +705,78 @@
       </div>
     </section>
 
+    <section class="view" id="view-stats" hidden>
+      <header class="view-head">
+        <h2>访问统计</h2>
+        <p>独立访客按浏览器去重，同一浏览器多次访问只计一个；总访问量包含重复访问。</p>
+      </header>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <span class="stat-label">今日独立访客</span>
+          <strong class="stat-num" id="statTodayUnique">0</strong>
+          <span class="stat-sub" id="statTodayUniqueSub">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">今日访问量</span>
+          <strong class="stat-num" id="statTodayVisits">0</strong>
+          <span class="stat-sub" id="statTodayVisitsSub">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">总独立访客</span>
+          <strong class="stat-num" id="statTotalUnique">0</strong>
+          <span class="stat-sub">累计去重后人数</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">总访问量</span>
+          <strong class="stat-num" id="statTotalVisits">0</strong>
+          <span class="stat-sub">含重复访问</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head-row">
+          <h3>访问趋势</h3>
+          <select id="statRange" class="stat-range">
+            <option value="7">最近 7 天</option>
+            <option value="14" selected>最近 14 天</option>
+            <option value="30">最近 30 天</option>
+            <option value="90">最近 90 天</option>
+          </select>
+        </div>
+        <div class="chart-wrap">
+          <svg class="stat-chart" id="statChart" viewBox="0 0 720 220" preserveAspectRatio="none"></svg>
+          <div class="chart-legend">
+            <span class="lg-item"><i class="lg-dot lg-unique"></i>独立访客</span>
+            <span class="lg-item"><i class="lg-dot lg-visit"></i>访问量</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>每日明细</h3>
+        <div class="stat-table-wrap">
+          <table class="stat-table">
+            <thead>
+              <tr>
+                <th>日期</th>
+                <th class="num">独立访客</th>
+                <th class="num">访问量</th>
+                <th class="num">人均访问</th>
+              </tr>
+            </thead>
+            <tbody id="statTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>数据管理</h3>
+        <p class="field-hint" style="margin-bottom:12px">清空后所有访问记录将被删除，不可恢复。</p>
+        <button class="btn danger small" id="resetStats" type="button">清空统计数据</button>
+      </div>
+    </section>
+
     <section class="view" id="view-about" hidden>
       <header class="view-head">
         <h2>关于</h2>
@@ -741,10 +859,10 @@
 
 <div id="modalRoot"></div>
 
-<script src="/assets/icons.js?v=9"></script>
+<script src="/assets/icons.js?v=10"></script>
 <script>window.__APP_VERSION__ = '1.1.0';</script>
-<script src="/assets/cropper.min.js?v=9"></script>
-<script src="/assets/cover.js?v=9"></script>
-<script src="/assets/backstage.js?v=9"></script>
+<script src="/assets/cropper.min.js?v=10"></script>
+<script src="/assets/cover.js?v=10"></script>
+<script src="/assets/backstage.js?v=10"></script>
 </body>
 </html>
