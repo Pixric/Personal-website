@@ -556,7 +556,7 @@
     var svg = $('statChart');
     if (!svg) return;
     var W = 720, H = 220;
-    var padL = 34, padR = 10, padT = 14, padB = 26;
+    var padL = 34, padR = 16, padT = 14, padB = 26;
     var innerW = W - padL - padR;
     var innerH = H - padT - padB;
 
@@ -593,17 +593,20 @@
       return d.trim();
     }
 
-    parts.push('<path d="' + linePath('visits') + '" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>');
-    parts.push('<path d="' + linePath('uniques') + '" fill="none" stroke="var(--text)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>');
+    parts.push('<path d="' + linePath('visits') + '" fill="none" stroke="#8fc4f5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>');
+    parts.push('<path d="' + linePath('uniques') + '" fill="none" stroke="#1a7ff0" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>');
 
     var labelEvery = Math.ceil(n / 7);
     series.forEach(function (p, i) {
       if (i % labelEvery !== 0 && i !== n - 1) return;
       var x = xAt(i);
-      parts.push('<circle cx="' + x + '" cy="' + yAt(p.visits) + '" r="2.6" fill="var(--text-3)"/>');
-      parts.push('<circle cx="' + x + '" cy="' + yAt(p.uniques) + '" r="3" fill="var(--text)"/>');
+      parts.push('<circle cx="' + x + '" cy="' + yAt(p.visits) + '" r="2.6" fill="#8fc4f5"/>');
+      parts.push('<circle cx="' + x + '" cy="' + yAt(p.uniques) + '" r="3.2" fill="#1a7ff0"/>');
+      var anchor = 'middle';
+      if (i === 0) anchor = 'start';
+      if (i === n - 1) anchor = 'end';
       parts.push('<text x="' + x + '" y="' + (H - 6) +
-        '" text-anchor="middle" font-size="10" fill="var(--text-3)">' + p.date.slice(5) + '</text>');
+        '" text-anchor="' + anchor + '" font-size="10" fill="var(--text-3)">' + p.date.slice(5) + '</text>');
     });
 
     svg.innerHTML = parts.join('');
