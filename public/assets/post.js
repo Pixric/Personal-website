@@ -99,8 +99,16 @@
   }
 
   function getSlugFromPath() {
-    var m = /^\/(?:posts?|帖子)\/([^/?#]+)/.exec(decodeURIComponent(location.pathname));
-    return m ? m[1] : '';
+    var path = location.pathname;
+    try { path = decodeURIComponent(path); } catch (e) {}
+
+    var m = /^\/(?:posts?|帖子)\/([^/?#]+)/.exec(path);
+    if (m) return m[1];
+
+    var seg = path.replace(/^\/+|\/+$/g, '');
+    if (seg && seg.indexOf('/') < 0) return seg;
+
+    return '';
   }
 
   var currentPost = null;
