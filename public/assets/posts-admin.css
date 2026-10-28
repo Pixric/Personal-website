@@ -1,0 +1,81 @@
+.post-list-admin{ display:flex; flex-direction:column; gap:10px; }
+
+.post-item-admin{
+  display:flex; align-items:center; gap:12px;
+  padding:10px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background:var(--bg-soft);
+}
+.pia-cover{
+  width:64px; height:52px; border-radius:8px; flex-shrink:0;
+  background-size:cover; background-position:center;
+  background-color:var(--bg-mute);
+  border:1px solid var(--border);
+}
+.pia-cover-empty{
+  display:flex; align-items:center; justify-content:center;
+  font-size:10.5px; color:var(--text-3);
+}
+.pia-info{ flex:1; min-width:0; }
+.pia-title{
+  font-size:13.5px; font-weight:500;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  display:flex; align-items:center; gap:6px;
+}
+.pia-draft{
+  font-size:10px; font-weight:400;
+  background:var(--bg-mute); color:var(--text-3);
+  padding:1px 6px; border-radius:99px;
+  flex-shrink:0;
+}
+.pia-meta{
+  font-size:11.5px; color:var(--text-3); margin-top:3px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.pia-actions{ display:flex; gap:2px; flex-shrink:0; }
+
+.post-editor{ max-width:620px; }
+.pe-body{
+  display:flex; flex-direction:column; gap:14px;
+  max-height:62vh; overflow-y:auto;
+  padding-right:4px;
+}
+.pe-slug-row{
+  display:flex; align-items:center; gap:2px;
+  border:1px solid var(--border-strong);
+  border-radius:8px;
+  background:var(--bg);
+  padding:0 10px;
+}
+.pe-slug-row:focus-within{ border-color:var(--text); }
+.pe-slug-prefix{ color:var(--text-3); font-size:13px; }
+.pe-slug-row input{
+  border:none !important; outline:none; flex:1;
+  padding:8px 0 !important; background:transparent !important;
+}
+
+.pe-upload-row{ display:flex; gap:12px; align-items:center; }
+.pe-thumb{
+  width:72px; height:56px; border-radius:8px; flex-shrink:0;
+  background-size:cover; background-position:center;
+  background-color:var(--bg-mute);
+  border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; color:var(--text-3);
+}
+.pe-upload-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+
+.pe-file-box{
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px;
+  background:var(--bg-soft);
+  border:1px solid var(--border);
+  border-radius:8px;
+  font-size:12.5px;
+}
+.pe-file-name{
+  flex:1; min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.pe-file-size{ color:var(--text-3); font-size:11.5px; flex-shrink:0; }

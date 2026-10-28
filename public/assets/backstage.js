@@ -437,6 +437,10 @@
       renderSocials();
       renderIconPicker();
       renderStorage();
+      if (window.GRWZ && window.GRWZ.initPosts && !window.__postsInited) {
+        window.__postsInited = true;
+        window.GRWZ.initPosts();
+      }
     }).catch(function (e) {
       if (e.status === 401) { showLogin(); return; }
       toast(e.message, 'error', '加载失败');
@@ -454,6 +458,7 @@
       });
       location.hash = view;
       if (view === 'stats') loadStats();
+      if (view === 'posts' && window.GRWZ && window.GRWZ.loadPosts) window.GRWZ.loadPosts();
     });
   });
 
@@ -671,6 +676,7 @@
 
     $('fSiteName').value = s.site_name || '';
     $('fNickname').value = s.nickname || '';
+    $('fEdition').value = s.site_edition || '';
     $('fAbout').value = s.about_text || '';
 
     $('avatarPreview').style.backgroundImage = s.avatar_url ? 'url("' + s.avatar_url + '")' : '';
@@ -713,6 +719,8 @@
     $('darkBgDim').value = parseInt(s.dark_bg_dim || '0', 10);
     $('darkBgDimVal').textContent = (s.dark_bg_dim || '0') + '%';
     $('darkDimWrap').style.display = s.dark_mode === '1' ? '' : 'none';
+
+    if (window.GRWZ && window.GRWZ.syncPostsUI) window.GRWZ.syncPostsUI(s);
 
     var roundVal = parseInt(s.ui_round || '0', 10);
     if (!isFinite(roundVal)) roundVal = 0;
@@ -811,6 +819,7 @@
       body: {
         site_name: $('fSiteName').value.trim(),
         nickname: $('fNickname').value.trim(),
+        site_edition: $('fEdition').value.trim(),
         about_text: $('fAbout').value,
       },
     }).then(function () {

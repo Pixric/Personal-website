@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex, nofollow" />
 <title>后台管理</title>
-<link rel="stylesheet" href="/assets/backstage.css?v=12" />
-<link rel="stylesheet" href="/assets/cropper.min.css?v=12" />
-<link rel="stylesheet" href="/assets/cover.css?v=12" />
+<link rel="stylesheet" href="/assets/backstage.css?v=13" />
+<link rel="stylesheet" href="/assets/cropper.min.css?v=13" />
+<link rel="stylesheet" href="/assets/cover.css?v=13" />
+<link rel="stylesheet" href="/assets/posts-admin.css?v=13" />
 </head>
 <body>
 
@@ -331,6 +332,12 @@
         <label class="field">
           <span class="field-label">副标题 / 用户名</span>
           <input id="fNickname" type="text" maxlength="60" placeholder="显示在名字下方的小字" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">版本字样（可选）</span>
+          <input id="fEdition" type="text" maxlength="30" placeholder="例如：特供版本" />
+          <span class="field-hint">填写后会追加显示在副标题后面，留空则不显示。</span>
         </label>
 
         <label class="field">
@@ -777,6 +784,32 @@
       </div>
     </section>
 
+    <section class="view" id="view-posts" hidden>
+      <header class="view-head">
+        <h2>帖子</h2>
+        <p>发布文章，支持图片、附件与点赞。每个帖子有独立地址。</p>
+      </header>
+
+      <div class="panel">
+        <label class="switch-row">
+          <span><b>启用帖子功能</b><em>开启后首页会展示帖子列表</em></span>
+          <input type="checkbox" id="postsEnabled" />
+        </label>
+      </div>
+
+      <div class="panel">
+        <h3>新建帖子</h3>
+        <div class="row">
+          <button class="btn primary" id="postNew" type="button">写新帖子</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>帖子列表</h3>
+        <div id="postListAdmin" class="post-list-admin"></div>
+      </div>
+    </section>
+
     <section class="view" id="view-about" hidden>
       <header class="view-head">
         <h2>关于</h2>
@@ -859,10 +892,11 @@
 
 <div id="modalRoot"></div>
 
-<script src="/assets/icons.js?v=12"></script>
-<script>window.__APP_VERSION__ = '1.1.0';</script>
-<script src="/assets/cropper.min.js?v=12"></script>
-<script src="/assets/cover.js?v=12"></script>
-<script src="/assets/backstage.js?v=12"></script>
+<script src="/assets/icons.js?v=13"></script>
+<script>window.__APP_VERSION__ = '1.2.0';</script>
+<script src="/assets/cropper.min.js?v=13"></script>
+<script src="/assets/cover.js?v=13"></script>
+<script src="/assets/posts-admin.js?v=13"></script>
+<script src="/assets/backstage.js?v=13"></script>
 </body>
 </html>

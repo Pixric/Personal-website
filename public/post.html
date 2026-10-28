@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" id="metaDesc" content="" />
+<title>加载中…</title>
+<link rel="stylesheet" href="/assets/style.css?v=13" />
+<link rel="stylesheet" href="/assets/post.css?v=13" />
+</head>
+<body>
+
+<div class="bg" id="bg"></div>
+<div class="bg-veil"></div>
+
+<div class="boot" id="boot"><div class="boot-spin"></div></div>
+
+<div class="page post-page" id="page" hidden>
+
+  <header class="navbar card">
+    <a class="nav-brand" id="navHome" href="/">
+      <span class="nav-avatar-fallback" id="navLogo">海</span>
+      <span class="nav-name" id="navName">首页</span>
+    </a>
+    <span class="post-nav-hint">文章</span>
+  </header>
+
+  <article class="post-article card">
+    <div class="post-cover" id="postCover" hidden></div>
+
+    <header class="post-head">
+      <h1 class="post-title" id="postTitle">—</h1>
+      <div class="post-meta">
+        <time id="postDate">—</time>
+      </div>
+    </header>
+
+    <div class="post-body" id="postBody"></div>
+
+    <div class="post-file" id="postFile" hidden>
+      <div class="pf-icon" id="pfIcon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M19 8v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7z"/></svg>
+      </div>
+      <div class="pf-info">
+        <span class="pf-name" id="pfName">附件</span>
+        <span class="pf-size" id="pfSize"></span>
+      </div>
+      <button class="pf-download" id="pfDownload" type="button">下载</button>
+    </div>
+
+    <footer class="post-foot">
+      <button class="like-btn" id="likeBtn" type="button" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l1.7 1.7L12 21.3l7.1-7.9 1.7-1.7a5 5 0 0 0 0-6.1z"/></svg>
+        <span id="likeCount">0</span>
+      </button>
+    </footer>
+  </article>
+
+  <div class="post-back">
+    <a href="/" class="back-link">← 返回首页</a>
+  </div>
+</div>
+
+<div class="gate" id="notFound" hidden>
+  <div class="gate-card card">
+    <h1>页面不存在</h1>
+    <p>这个帖子可能已被删除，或者帖子功能没有开启。</p>
+    <a class="btn primary" href="/">返回首页</a>
+  </div>
+</div>
+
+<div class="captcha-mask" id="captchaMask" hidden>
+  <div class="captcha-box card">
+    <h3>安全验证</h3>
+    <p class="captcha-tip">请拖动滑块，从左滑到最右侧完成验证</p>
+    <div class="captcha-track" id="captchaTrack">
+      <div class="captcha-fill" id="captchaFill"></div>
+      <span class="captcha-label" id="captchaLabel">按住滑块拖动</span>
+      <div class="captcha-thumb" id="captchaThumb">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+    </div>
+    <div class="captcha-actions">
+      <button class="btn ghost small" id="captchaCancel" type="button">取消</button>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/post.js?v=13"></script>
+</body>
+</html>

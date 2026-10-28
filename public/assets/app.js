@@ -78,6 +78,8 @@
     setupReveal(site);
     if (site.animations && site.animations.background) setupParallax(site);
 
+    if (site.posts_enabled) renderPosts();
+
     renderGitHub(site);
     setupPlayer(data, site);
   }
@@ -176,7 +178,13 @@
     $('name').textContent = site.site_name || displayName;
 
     var unEl = $('username');
-    unEl.textContent = (site.nickname || '').trim() || '未设置';
+    var nick = (site.nickname || '').trim();
+    var edition = (site.edition || '').trim();
+    if (edition) {
+      unEl.textContent = (nick ? nick + ' · ' : '') + edition;
+    } else {
+      unEl.textContent = nick || '未设置';
+    }
     unEl.hidden = false;
 
     setImage('avatar', 'avatarFallback', site.avatar_url, displayName);
@@ -356,6 +364,37 @@
 
   function starIcon() { return '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6.4 6.9.7-5.2 4.7 1.6 6.8L12 17.8 5.8 21.1l1.6-6.8-5.2-4.7 6.9-.7L12 2.5z"/></svg>'; }
   function forkIcon() { return '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm10 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM7 8v2a3 3 0 0 0 3 3h1v3a2 2 0 1 0 2 0v-3h1a3 3 0 0 0 3-3V8h-2v2a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1V8H7Z"/></svg>'; }
+
+  function renderPosts() {
+    fetch('/api/posts', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok || !d.enabled || !d.posts || !d.posts.length) return;
+        var card = $('postsCard');
+        var grid = $('postGrid');
+        if (!card || !grid) return;
+
+        grid.innerHTML = '';
+        d.posts.forEach(function (p) {
+          var a = document.createElement('a');
+          a.className = 'post-card';
+          a.href = '/' + encodeURIComponent(p.slug);
+          a.innerHTML =
+            (p.cover_url
+              ? '<div class="pc-cover" style="background-image:url(\'' + p.cover_url + '\')"></div>'
+              : '<div class="pc-cover pc-cover-empty"></div>') +
+            '<div class="pc-body">' +
+              '<div class="pc-title">' + esc(p.title) + '</div>' +
+              '<div class="pc-excerpt">' + esc(p.excerpt || '') + '</div>' +
+              '<div class="pc-meta">' + (p.likes || 0) + ' 赞</div>' +
+            '</div>';
+          grid.appendChild(a);
+        });
+
+        card.hidden = false;
+      })
+      .catch(function () {});
+  }
 
   function renderGitHub(site) {
     var user = (site.github_user || '').trim();

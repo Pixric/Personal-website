@@ -10,6 +10,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
 const UPLOADS = path.join(ROOT, 'data', 'uploads');
+
+let APP_VERSION = '1.0.0';
+try {
+  const raw = fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8').replace(/^\uFEFF/, '');
+  const pkg = JSON.parse(raw);
+  if (pkg.version) APP_VERSION = String(pkg.version);
+} catch {}
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const MAX_UPLOAD = 100 * 1024 * 1024;
@@ -267,6 +274,12 @@ function num(v, fallback, min, max) {
   return Math.min(max, Math.max(min, n));
 }
 
+function visitorCookie(req) {
+  const cookieHeader = req.headers.cookie || '';
+  const m = /(?:^|;\s*)pw_visitor=([A-Za-z0-9_-]{8,64})/.exec(cookieHeader);
+  return m ? m[1] : '';
+}
+
 function publicSite() {
   const s = store.getSettings();
   const tracks = store.allTracks();
@@ -302,6 +315,8 @@ function publicSite() {
       dark_mode: s.dark_mode === '1',
       dark_bg_dim: num(s.dark_bg_dim, 0, 0, 100),
       ui_round: num(s.ui_round, 0, 0, 100),
+      posts_enabled: s.posts_enabled === '1',
+      edition: s.site_edition || '',
       animations: {
         intro: s.anim_intro !== '0',
         intro_duration: num(s.anim_intro_duration, 1, 0.2, 3),
@@ -344,7 +359,7 @@ const EDITABLE = [
   'music_enabled', 'music_mode', 'github_user', 'github_show_repos', 'github_show_chart',
   'anim_intro', 'anim_intro_duration', 'anim_bg', 'anim_bg_strength',
   'anim_reveal', 'anim_reveal_distance', 'anim_avatar', 'anim_player',
-  'dark_mode', 'dark_bg_dim', 'ui_round',
+  'dark_mode', 'dark_bg_dim', 'ui_round', 'posts_enabled', 'site_edition',
   'footer_text', 'footer_opacity', 'footer_color', 'footer_link',
   'tg_enabled', 'tg_title', 'tg_sub', 'tg_url', 'security_entry', 'site_url',
 ];
@@ -352,6 +367,7 @@ const EDITABLE = [
 const BOOL_KEYS = [
   'music_enabled', 'github_show_repos', 'github_show_chart', 'bg_api_enabled',
   'anim_intro', 'anim_bg', 'anim_reveal', 'anim_avatar', 'anim_player', 'tg_enabled', 'dark_mode',
+  'posts_enabled',
 ];
 
 function adminState() {
@@ -388,9 +404,15 @@ function secureExt(name, fallback) {
 }
 
 function kindDir(kind) {
-  const map = { avatar: 'avatar', bg: 'bg', track: 'track', cover: 'cover', icon: 'icon', font: 'font' };
+  const map = {
+    avatar: 'avatar', bg: 'bg', track: 'track', cover: 'cover',
+    icon: 'icon', font: 'font',
+    'post-cover': 'post-cover', 'post-file': 'post-file', 'post-icon': 'post-icon',
+  };
   return map[kind] || null;
 }
+
+const POST_FILE_MAX = 500 * 1024 * 1024;
 
 function safeAbs(key) {
   const abs = path.join(UPLOADS, key);
@@ -512,7 +534,9 @@ async function handleUpload(req, res) {
   if (!dir) return sendJson(res, { ok: false, error: '未知的上传类型' }, 400);
   if (!file.data.length) return sendJson(res, { ok: false, error: '文件为空' }, 400);
 
-  const limit = kind === 'track' ? MAX_UPLOAD : 12 * 1024 * 1024;
+  const limit = kind === 'post-file'
+    ? POST_FILE_MAX
+    : (kind === 'track' ? MAX_UPLOAD : 12 * 1024 * 1024);
   if (file.data.length > limit) {
     return sendJson(res, {
       ok: false,
@@ -529,6 +553,10 @@ async function handleUpload(req, res) {
   } else if (kind === 'font') {
     if (!FONT_EXT.has(ext)) {
       return sendJson(res, { ok: false, error: '字体只支持 ttf / otf / woff / woff2' }, 415);
+    }
+  } else if (kind === 'post-file') {
+    if (!/^\.[a-zA-Z0-9]{1,10}$/.test(ext)) {
+      return sendJson(res, { ok: false, error: '文件扩展名不合法' }, 415);
     }
   } else if (!IMAGE_EXT.has(ext)) {
     return sendJson(res, { ok: false, error: '这里只支持图片文件（png / jpg / webp / gif / svg）' }, 415);
@@ -561,6 +589,16 @@ async function handleUpload(req, res) {
     store.setSettings({ [keyName]: key });
     if (old && old !== key) deleteKey(old);
     return sendJson(res, { ok: true, key: key, url: assetUrl(key), replaced: old || '' });
+  }
+
+  if (kind === 'post-cover' || kind === 'post-file' || kind === 'post-icon') {
+    return sendJson(res, {
+      ok: true,
+      key: key,
+      url: assetUrl(key),
+      name: String(file.filename || '').slice(0, 200),
+      size: file.data.length,
+    });
   }
 
   if (kind === 'font') {
@@ -698,6 +736,80 @@ async function api(req, res, pathname, method) {
     return sendJson(res, { ok: true, is_new: r.isNew }, 200, headers);
   }
 
+  if (pathname === '/api/posts' && method === 'GET') {
+    const s = store.getSettings();
+    if (s.posts_enabled !== '1') return sendJson(res, { ok: true, enabled: false, posts: [] });
+    return sendJson(res, {
+      ok: true,
+      enabled: true,
+      posts: store.publishedPosts().map((p) => ({
+        id: p.id,
+        slug: p.slug,
+        title: p.title,
+        excerpt: String(p.content || '').replace(/[#*`>\-]/g, '').slice(0, 120),
+        cover_url: assetUrl(p.cover_key),
+        likes: p.likes || 0,
+        created_at: p.created_at,
+      })),
+    });
+  }
+
+  const postMatch = /^\/api\/posts\/([^/]+)$/.exec(pathname);
+  if (postMatch && method === 'GET') {
+    const s = store.getSettings();
+    if (s.posts_enabled !== '1') {
+      return sendJson(res, { ok: false, error: '帖子功能未开启' }, 404);
+    }
+    const p = store.findPostBySlug(decodeURIComponent(postMatch[1]));
+    if (!p || p.published === '0') {
+      return sendJson(res, { ok: false, error: '帖子不存在' }, 404);
+    }
+    const visitorId = visitorCookie(req) || '';
+    return sendJson(res, {
+      ok: true,
+      post: {
+        id: p.id,
+        slug: p.slug,
+        title: p.title,
+        content: p.content || '',
+        cover_url: assetUrl(p.cover_key),
+        file_url: assetUrl(p.file_key),
+        file_name: p.file_name || '',
+        file_size: p.file_size || 0,
+        file_icon_url: assetUrl(p.file_icon_key),
+        likes: p.likes || 0,
+        liked: visitorId ? store.postLikedBy(p.id, visitorId) : false,
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+      },
+    });
+  }
+
+  const likeMatch = /^\/api\/posts\/(\d+)\/like$/.exec(pathname);
+  if (likeMatch && method === 'POST') {
+    const s = store.getSettings();
+    if (s.posts_enabled !== '1') {
+      return sendJson(res, { ok: false, error: '帖子功能未开启' }, 404);
+    }
+
+    let visitorId = visitorCookie(req);
+    let setCookie = false;
+    if (!visitorId) {
+      visitorId = b64url(crypto.randomBytes(16));
+      setCookie = true;
+    }
+
+    const r = store.togglePostLike(parseInt(likeMatch[1], 10), visitorId);
+    if (!r) return sendJson(res, { ok: false, error: '帖子不存在' }, 404);
+
+    const headers = {};
+    if (setCookie) {
+      headers['set-cookie'] =
+        'pw_visitor=' + visitorId + '; Path=/; Max-Age=' + (400 * 24 * 3600) + '; SameSite=Lax; HttpOnly';
+    }
+    return sendJson(res, { ok: true, liked: r.liked, likes: r.likes }, 200, headers);
+  }
+
   if (pathname.startsWith('/api/admin/')) {
     const admin = currentAdmin(req);
     if (!admin) return sendJson(res, { ok: false, error: '未登录或会话已过期' }, 401);
@@ -723,6 +835,90 @@ async function api(req, res, pathname, method) {
 
     if (rest === 'stats/reset' && method === 'POST') {
       store.resetVisitStats();
+      return sendJson(res, { ok: true });
+    }
+
+    if (rest === 'posts' && method === 'GET') {
+      return sendJson(res, {
+        ok: true,
+        posts: store.allPosts().map((p) => Object.assign({}, p, {
+          cover_url: assetUrl(p.cover_key),
+          file_url: assetUrl(p.file_key),
+          file_icon_url: assetUrl(p.file_icon_key),
+        })),
+      });
+    }
+
+    if (rest === 'posts' && method === 'POST') {
+      const body = await readJson(req);
+      const title = String(body.title || '').trim().slice(0, 200);
+      if (!title) return sendJson(res, { ok: false, error: '请填写帖子标题' }, 400);
+
+      let slug = String(body.slug || '').trim();
+      if (slug) {
+        slug = slug.replace(/[^\w\u4e00-\u9fa5-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        if (!slug) return sendJson(res, { ok: false, error: '地址不合法' }, 400);
+        if (store.postSlugTaken(slug)) {
+          return sendJson(res, { ok: false, error: '这个地址已被占用' }, 409);
+        }
+      } else {
+        slug = store.makeSlug(title);
+      }
+
+      const row = store.insertPost({
+        slug,
+        title,
+        content: String(body.content || '').slice(0, 200000),
+        cover_key: String(body.cover_key || ''),
+        file_key: String(body.file_key || ''),
+        file_name: String(body.file_name || '').slice(0, 300),
+        file_size: parseInt(body.file_size, 10) || 0,
+        file_icon_key: String(body.file_icon_key || ''),
+        published: body.published === false ? '0' : '1',
+      });
+      return sendJson(res, { ok: true, post: row });
+    }
+
+    if (rest.startsWith('posts/') && method === 'PUT') {
+      const id = parseInt(rest.slice('posts/'.length), 10);
+      if (!Number.isInteger(id)) return sendJson(res, { ok: false, error: 'ID 不合法' }, 400);
+      const body = await readJson(req);
+      const patch = {};
+
+      if ('title' in body) patch.title = String(body.title || '').trim().slice(0, 200);
+      if ('content' in body) patch.content = String(body.content || '').slice(0, 200000);
+      if ('cover_key' in body) patch.cover_key = String(body.cover_key || '');
+      if ('file_key' in body) patch.file_key = String(body.file_key || '');
+      if ('file_name' in body) patch.file_name = String(body.file_name || '').slice(0, 300);
+      if ('file_size' in body) patch.file_size = parseInt(body.file_size, 10) || 0;
+      if ('file_icon_key' in body) patch.file_icon_key = String(body.file_icon_key || '');
+      if ('published' in body) patch.published = body.published === false ? '0' : '1';
+
+      if ('slug' in body) {
+        const slug = String(body.slug || '').trim();
+        if (!slug) return sendJson(res, { ok: false, error: '地址不能为空' }, 400);
+        if (store.postSlugTaken(slug, id)) {
+          return sendJson(res, { ok: false, error: '这个地址已被占用' }, 409);
+        }
+        patch.slug = slug;
+      }
+
+      const row = store.updatePost(id, patch);
+      if (!row) return sendJson(res, { ok: false, error: '帖子不存在' }, 404);
+      return sendJson(res, { ok: true, post: row });
+    }
+
+    if (rest.startsWith('posts/') && method === 'DELETE') {
+      const id = parseInt(rest.slice('posts/'.length), 10);
+      if (!Number.isInteger(id)) return sendJson(res, { ok: false, error: 'ID 不合法' }, 400);
+      const p = store.findPostById(id);
+      const ok = store.deletePost(id);
+      if (!ok) return sendJson(res, { ok: false, error: '帖子不存在' }, 404);
+      if (p) {
+        for (const k of [p.cover_key, p.file_key, p.file_icon_key]) {
+          if (k) deleteKey(k);
+        }
+      }
       return sendJson(res, { ok: true });
     }
     if (rest === 'upload' && method === 'POST') return handleUpload(req, res);
@@ -1032,9 +1228,7 @@ async function handler(req, res) {
         }
       }
 
-      const ok = await serveFile(req, res, path.join(PUBLIC, 'backstage.html'));
-      if (ok) return;
-      return sendText(res, 'not found', 404);
+      return sendBackstage(res);
     }
 
     if (pathname.startsWith('/uploads/')) {
@@ -1049,10 +1243,34 @@ async function handler(req, res) {
     const s = store.getSettings();
     const entry = s.security_entry || '';
     const first = pathname.split('/').filter(Boolean)[0] || '';
+
     if (entry && first === entry) {
-      const ok = await serveFile(req, res, path.join(PUBLIC, 'backstage.html'));
-      if (ok) return;
+      return sendBackstage(res);
+    }
+
+    const postPage = /^\/(?:posts?|帖子)\/([^/]+)\/?$/.exec(pathname);
+    if (postPage) {
+      let slug = postPage[1];
+      try { slug = decodeURIComponent(slug); } catch {}
+      const post = store.findPostBySlug(slug) || store.findPostBySlug(postPage[1]);
+      if (post && post.published !== '0' && s.posts_enabled === '1') {
+        const ok = await serveFile(req, res, path.join(PUBLIC, 'post.html'));
+        if (ok) return;
+      }
       return sendText(res, 'not found', 404);
+    }
+
+    if (pathname !== '/' && !path.extname(pathname) && s.posts_enabled === '1') {
+      const seg = pathname.replace(/^\/+|\/+$/g, '');
+      if (seg && seg.indexOf('/') < 0) {
+        let slug = seg;
+        try { slug = decodeURIComponent(seg); } catch {}
+        const post = store.findPostBySlug(slug) || store.findPostBySlug(seg);
+        if (post && post.published !== '0') {
+          const ok = await serveFile(req, res, path.join(PUBLIC, 'post.html'));
+          if (ok) return;
+        }
+      }
     }
 
     const candidate = path.join(PUBLIC, pathname);
@@ -1077,6 +1295,33 @@ async function handler(req, res) {
     if (!res.headersSent) sendJson(res, { ok: false, error: '服务器内部错误' }, 500);
     else res.end();
   }
+}
+
+function sendBackstage(res) {
+  let html;
+  try {
+    html = fs.readFileSync(path.join(PUBLIC, 'backstage.html'), 'utf8');
+  } catch {
+    res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' });
+    res.end('backstage not found');
+    return;
+  }
+
+  const s = store.getSettings();
+  html = html.replace(
+    /window\.__APP_VERSION__\s*=\s*['"][^'"]*['"]\s*;/,
+    'window.__APP_VERSION__ = ' + JSON.stringify(APP_VERSION) + ';'
+  );
+  html = html.replace(
+    '<title>后台管理</title>',
+    '<title>' + (s.security_entry ? '后台管理' : '初始化') + '</title>'
+  );
+
+  res.writeHead(200, {
+    'content-type': 'text/html; charset=utf-8',
+    'cache-control': 'no-store',
+  });
+  res.end(html);
 }
 
 async function serveFrontendFallback(req, res) {

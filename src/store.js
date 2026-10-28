@@ -39,6 +39,8 @@ const DEFAULTS = {
   dark_mode: '0',
   dark_bg_dim: '0',
   ui_round: '0',
+  posts_enabled: '0',
+  site_edition: '',
   footer_text: '',
   footer_opacity: '0.55',
   footer_color: '#8b8b8b',
@@ -59,8 +61,10 @@ function emptyState() {
     tracks: [],
     socials: [],
     assets: [],
-    seq: { admins: 0, tracks: 0, socials: 0 },
+    seq: { admins: 0, tracks: 0, socials: 0, posts: 0 },
     stats: { days: {}, visitors: [], visits: 0 },
+    posts: [],
+    postLikes: {},
   };
 }
 
@@ -83,8 +87,10 @@ export function load() {
         tracks: Array.isArray(raw.tracks) ? raw.tracks : [],
         socials: Array.isArray(raw.socials) ? raw.socials : [],
         assets: Array.isArray(raw.assets) ? raw.assets : [],
-        seq: raw.seq || { admins: 0, tracks: 0, socials: 0 },
+        seq: raw.seq || { admins: 0, tracks: 0, socials: 0, posts: 0 },
         stats: raw.stats || { days: {}, visitors: [], visits: 0 },
+        posts: Array.isArray(raw.posts) ? raw.posts : [],
+        postLikes: raw.postLikes || {},
       };
     } catch {
       const bak = DB_FILE + '.corrupt-' + Date.now();
@@ -437,6 +443,132 @@ export function clearAssets() {
 
 export function clearTracks() {
   load().tracks = [];
+  save();
+}
+
+function slugify(input) {
+  return String(input || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\u4e00-\u9fa5-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 60);
+}
+
+export function allPosts() {
+  const list = load().posts || [];
+  return list.slice().sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+}
+
+export function publishedPosts() {
+  return allPosts().filter((p) => p.published !== '0');
+}
+
+export function findPostById(id) {
+  return (load().posts || []).find((p) => p.id === Number(id)) || null;
+}
+
+export function findPostBySlug(slug) {
+  return (load().posts || []).find((p) => p.slug === String(slug)) || null;
+}
+
+export function postSlugTaken(slug, exceptId) {
+  return (load().posts || []).some(
+    (p) => p.slug === String(slug) && p.id !== Number(exceptId)
+  );
+}
+
+export function makeSlug(title, fallback) {
+  let base = slugify(title);
+  if (!base) base = 'post-' + (fallback || Date.now().toString(36));
+  if (!postSlugTaken(base)) return base;
+  let i = 2;
+  while (postSlugTaken(base + '-' + i) && i < 500) i++;
+  return base + '-' + i;
+}
+
+export function insertPost(data) {
+  const s = load();
+  if (!Array.isArray(s.posts)) s.posts = [];
+  s.seq.posts = (s.seq.posts || 0) + 1;
+  const row = {
+    id: s.seq.posts,
+    slug: data.slug,
+    title: data.title || '',
+    content: data.content || '',
+    cover_key: data.cover_key || '',
+    file_key: data.file_key || '',
+    file_name: data.file_name || '',
+    file_size: data.file_size || 0,
+    file_icon_key: data.file_icon_key || '',
+    published: data.published === '0' ? '0' : '1',
+    likes: 0,
+    created_at: Date.now(),
+    updated_at: Date.now(),
+  };
+  s.posts.push(row);
+  save();
+  return row;
+}
+
+export function updatePost(id, patch) {
+  const s = load();
+  const p = (s.posts || []).find((x) => x.id === Number(id));
+  if (!p) return null;
+  for (const k of ['slug', 'title', 'content', 'cover_key', 'file_key',
+    'file_name', 'file_size', 'file_icon_key', 'published']) {
+    if (k in patch) p[k] = patch[k];
+  }
+  p.updated_at = Date.now();
+  save();
+  return p;
+}
+
+export function deletePost(id) {
+  const s = load();
+  const before = (s.posts || []).length;
+  s.posts = (s.posts || []).filter((p) => p.id !== Number(id));
+  if (s.postLikes && s.postLikes[id]) delete s.postLikes[id];
+  if (s.posts.length === before) return false;
+  save();
+  return true;
+}
+
+export function togglePostLike(id, visitorId) {
+  const s = load();
+  const p = (s.posts || []).find((x) => x.id === Number(id));
+  if (!p) return null;
+  if (!s.postLikes) s.postLikes = {};
+
+  const key = String(id);
+  if (!Array.isArray(s.postLikes[key])) s.postLikes[key] = [];
+  const list = s.postLikes[key];
+  const idx = list.indexOf(visitorId);
+
+  let liked;
+  if (idx >= 0) {
+    list.splice(idx, 1);
+    liked = false;
+  } else {
+    list.push(visitorId);
+    liked = true;
+  }
+  p.likes = list.length;
+  save();
+  return { liked, likes: p.likes };
+}
+
+export function postLikedBy(id, visitorId) {
+  const s = load();
+  const list = (s.postLikes && s.postLikes[String(id)]) || [];
+  return list.includes(visitorId);
+}
+
+export function clearPosts() {
+  const s = load();
+  s.posts = [];
+  s.postLikes = {};
   save();
 }
 
