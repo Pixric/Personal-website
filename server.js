@@ -43,6 +43,13 @@ const MIME = {
   '.flac': 'audio/flac',
   '.ogg': 'audio/ogg',
   '.opus': 'audio/opus',
+  '.mp4': 'video/mp4',
+  '.m4v': 'video/mp4',
+  '.webm': 'video/webm',
+  '.ogv': 'video/ogg',
+  '.mov': 'video/quicktime',
+  '.mkv': 'video/x-matroska',
+  '.avi': 'video/x-msvideo',
   '.ttf': 'font/ttf',
   '.otf': 'font/otf',
   '.woff': 'font/woff',
@@ -50,6 +57,7 @@ const MIME = {
 };
 
 const AUDIO_EXT = new Set(['.mp3', '.m4a', '.aac', '.wav', '.flac', '.ogg', '.opus']);
+const VIDEO_EXT = new Set(['.mp4', '.m4v', '.webm', '.ogv', '.mov', '.mkv', '.avi']);
 const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.avif', '.ico']);
 const FONT_EXT = new Set(['.ttf', '.otf', '.woff', '.woff2']);
 const AUDIO_MIME = new Set(['.mp3', '.m4a', '.wav', '.flac', '.ogg', '.opus', '.aac']);
@@ -278,6 +286,15 @@ function visitorCookie(req) {
   const cookieHeader = req.headers.cookie || '';
   const m = /(?:^|;\s*)pw_visitor=([A-Za-z0-9_-]{8,64})/.exec(cookieHeader);
   return m ? m[1] : '';
+}
+
+function fileKind(nameOrKey) {
+  const ext = path.extname(String(nameOrKey || '')).toLowerCase();
+  if (VIDEO_EXT.has(ext)) return 'video';
+  if (AUDIO_EXT.has(ext)) return 'audio';
+  if (IMAGE_EXT.has(ext)) return 'image';
+  if (ext === '.pdf') return 'pdf';
+  return 'file';
 }
 
 function publicSite() {
@@ -779,6 +796,8 @@ async function api(req, res, pathname, method) {
         file_name: p.file_name || '',
         file_size: p.file_size || 0,
         file_icon_url: assetUrl(p.file_icon_key),
+        file_kind: fileKind(p.file_key || p.file_name),
+        file_mime: MIME[path.extname(String(p.file_key || p.file_name || '')).toLowerCase()] || '',
         likes: p.likes || 0,
         liked: visitorId ? store.postLikedBy(p.id, visitorId) : false,
         created_at: p.created_at,
@@ -1178,11 +1197,16 @@ async function serveFile(req, res, filePath, immutable) {
   const type = MIME[ext] || 'application/octet-stream';
   const range = req.headers.range;
 
-  if (range && AUDIO_MIME.has(ext)) {
+  if (range && (AUDIO_MIME.has(ext) || VIDEO_EXT.has(ext))) {
     const mm = /bytes=(\d*)-(\d*)/.exec(range);
     if (mm) {
       const start = mm[1] ? parseInt(mm[1], 10) : 0;
       const end = mm[2] ? parseInt(mm[2], 10) : st.size - 1;
+      if (start >= st.size || end < start) {
+        res.writeHead(416, { 'content-range': 'bytes */' + st.size });
+        res.end();
+        return true;
+      }
       res.writeHead(206, {
         'content-type': type,
         'content-range': 'bytes ' + start + '-' + end + '/' + st.size,

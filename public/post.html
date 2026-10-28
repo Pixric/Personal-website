@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="description" id="metaDesc" content="" />
 <title>加载中…</title>
-<link rel="stylesheet" href="/assets/style.css?v=14" />
-<link rel="stylesheet" href="/assets/post.css?v=14" />
+<link rel="stylesheet" href="/assets/style.css?v=15" />
+<link rel="stylesheet" href="/assets/post.css?v=15" />
 </head>
 <body>
 
@@ -36,6 +36,14 @@
     </header>
 
     <div class="post-body" id="postBody"></div>
+
+    <div class="post-video" id="postVideo" hidden>
+      <video id="videoPlayer" controls playsinline preload="metadata"></video>
+      <div class="pv-meta">
+        <span class="pv-name" id="pvName">视频</span>
+        <span class="pv-size" id="pvSize"></span>
+      </div>
+    </div>
 
     <div class="post-file" id="postFile" hidden>
       <div class="pf-icon" id="pfIcon">
@@ -86,6 +94,6 @@
   </div>
 </div>
 
-<script src="/assets/post.js?v=14"></script>
+<script src="/assets/post.js?v=15"></script>
 </body>
 </html>

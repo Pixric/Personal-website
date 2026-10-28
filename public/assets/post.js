@@ -336,19 +336,43 @@
     $('postBody').innerHTML = renderMarkdown(p.content);
 
     if (p.file_url && p.file_name) {
-      $('postFile').hidden = false;
-      $('pfName').textContent = p.file_name;
-      $('pfSize').textContent = fmtSize(p.file_size);
-      if (p.file_icon_url) {
-        $('pfIcon').innerHTML = '<img src="' + esc(p.file_icon_url) + '" alt="" />';
-      }
       pendingDownloadUrl = p.file_url;
+
+      var isVideo = p.file_kind === 'video';
+      if (isVideo) {
+        renderVideo(p);
+      } else {
+        $('postFile').hidden = false;
+        $('pfName').textContent = p.file_name;
+        $('pfSize').textContent = fmtSize(p.file_size);
+        if (p.file_icon_url) {
+          $('pfIcon').innerHTML = '<img src="' + esc(p.file_icon_url) + '" alt="" />';
+        }
+      }
     }
 
     updateLikeUI(p.likes, p.liked);
 
     $('page').hidden = false;
     $('boot').classList.add('hide');
+  }
+
+  function renderVideo(p) {
+    var box = $('postVideo');
+    var video = $('videoPlayer');
+    box.hidden = false;
+
+    $('pvName').textContent = p.file_name;
+    $('pvSize').textContent = fmtSize(p.file_size);
+
+    if (p.file_mime) video.setAttribute('type', p.file_mime);
+    video.src = p.file_url;
+    video.setAttribute('controlsList', 'nodownload');
+
+    video.addEventListener('error', function () {
+      $('pvName').textContent = p.file_name + '（浏览器无法播放该格式，请下载后观看）';
+      video.hidden = true;
+    }, { once: true });
   }
 
   function updateLikeUI(likes, liked) {
