@@ -222,3 +222,21 @@
 .btn.primary:hover{ opacity:.88; }
 .btn.ghost{ background:transparent; }
 .btn.small{ padding:6px 13px; font-size:12.5px; }
+
+.reveal{
+  opacity:0;
+  transform:translateY(var(--reveal-dist, 18px));
+  transition:opacity .6s var(--ease), transform .6s var(--ease);
+}
+.reveal.in-view{ opacity:1; transform:translateY(0); }
+
+body.intro-anim .page{ animation:pageIn var(--intro-dur, 1s) var(--ease) both; }
+@keyframes pageIn{
+  0%{ opacity:0; }
+  100%{ opacity:1; }
+}
+body.intro-anim .bg{ animation:bgIn var(--intro-dur, 1s) var(--ease) both; }
+@keyframes bgIn{
+  0%{ filter:blur(18px) brightness(.9); }
+  100%{ filter:blur(2px) brightness(.97); }
+}

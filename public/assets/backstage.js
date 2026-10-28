@@ -677,6 +677,12 @@
     $('fSiteName').value = s.site_name || '';
     $('fNickname').value = s.nickname || '';
     $('fEdition').value = s.site_edition || '';
+    var dot = $('editionDot');
+    if (dot) {
+      var hasEd = !!(s.site_edition && String(s.site_edition).trim());
+      dot.hidden = !hasEd;
+      dot.title = hasEd ? String(s.site_edition).trim() : '';
+    }
     $('fAbout').value = s.about_text || '';
 
     $('avatarPreview').style.backgroundImage = s.avatar_url ? 'url("' + s.avatar_url + '")' : '';

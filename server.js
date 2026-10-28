@@ -765,8 +765,10 @@ async function api(req, res, pathname, method) {
       return sendJson(res, { ok: false, error: '帖子不存在' }, 404);
     }
     const visitorId = visitorCookie(req) || '';
+    const sitePayload = publicSite();
     return sendJson(res, {
       ok: true,
+      site: sitePayload.site,
       post: {
         id: p.id,
         slug: p.slug,

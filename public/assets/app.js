@@ -179,12 +179,7 @@
 
     var unEl = $('username');
     var nick = (site.nickname || '').trim();
-    var edition = (site.edition || '').trim();
-    if (edition) {
-      unEl.textContent = (nick ? nick + ' · ' : '') + edition;
-    } else {
-      unEl.textContent = nick || '未设置';
-    }
+    unEl.textContent = nick || '未设置';
     unEl.hidden = false;
 
     setImage('avatar', 'avatarFallback', site.avatar_url, displayName);
