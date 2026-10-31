@@ -1071,6 +1071,20 @@ async function api(req, res, pathname, method) {
       });
     }
 
+    if (rest === 'pay/overview' && method === 'GET') {
+      const days = url.searchParams.get('days');
+      return sendJson(res, Object.assign({ ok: true }, pay.tradeOverview(days)));
+    }
+
+    if (rest === 'pay/reset' && method === 'POST') {
+      const body = await readJson(req);
+      if (String(body.confirm || '') !== 'RESET') {
+        return sendJson(res, { ok: false, error: '请输入 RESET 以确认重置' }, 400);
+      }
+      pay.resetAllTrade();
+      return sendJson(res, { ok: true });
+    }
+
     if (rest === 'pay/state' && method === 'GET') {
       const c = pay.payConfig();
       return sendJson(res, {

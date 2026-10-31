@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex, nofollow" />
 <title>后台管理</title>
-<link rel="stylesheet" href="/assets/backstage.css?v=16" />
-<link rel="stylesheet" href="/assets/cropper.min.css?v=16" />
-<link rel="stylesheet" href="/assets/cover.css?v=16" />
-<link rel="stylesheet" href="/assets/posts-admin.css?v=16" />
+<link rel="stylesheet" href="/assets/backstage.css?v=17" />
+<link rel="stylesheet" href="/assets/cropper.min.css?v=17" />
+<link rel="stylesheet" href="/assets/cover.css?v=17" />
+<link rel="stylesheet" href="/assets/posts-admin.css?v=17" />
 </head>
 <body>
 
@@ -178,16 +178,37 @@
         </div>
       </div>
 
+      <div class="nav-group" data-group="trade">
+        <button class="nav-group-head" type="button">
+          <span>交易</span>
+          <svg class="nav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <div class="nav-group-body">
+          <button class="nav-item" data-view="pay-overview" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+            <span class="nav-text">交易概览</span>
+          </button>
+          <button class="nav-item" data-view="pay-kami" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 12h10"/><circle cx="17.5" cy="9.5" r=".9" fill="currentColor" stroke="none"/></svg>
+            <span class="nav-text">卡密管理</span>
+          </button>
+          <button class="nav-item" data-view="pay-orders" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-3-2-2 2-2-2-2 2-2-2-3 2V4a1 1 0 0 1 1-1z"/><path d="M9 8h6M9 12h6"/></svg>
+            <span class="nav-text">订单记录</span>
+          </button>
+          <button class="nav-item" data-view="pay-config" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span class="nav-text">交易设置</span>
+          </button>
+        </div>
+      </div>
+
       <div class="nav-group" data-group="settings">
         <button class="nav-group-head" type="button">
           <span>设置</span>
           <svg class="nav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
         <div class="nav-group-body">
-          <button class="nav-item" data-view="payment" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
-            <span class="nav-text">支付与卡密</span>
-          </button>
           <button class="nav-item" data-view="security" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.4 8.4-8 9-4.6-.6-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
             <span class="nav-text">安全与账号</span>
@@ -650,16 +671,166 @@
       </div>
     </section>
 
-    <section class="view" id="view-payment" hidden>
+    <section class="view" id="view-pay-overview" hidden>
       <header class="view-head">
-        <h2>支付与卡密</h2>
-        <p>对接卡密支付系统，付款后自动发放卡密。密钥仅保存在服务端。</p>
+        <h2>交易概览</h2>
+        <p>店铺成交、订单与库存概况。</p>
+      </header>
+
+      <div class="trade-hero" id="tradeHero">
+        <div class="trade-hero-item"><strong id="tpWaitPay">0</strong><span>待付款</span></div>
+        <div class="trade-hero-item"><strong id="tpKamiAvail">0</strong><span>卡密库存</span></div>
+        <div class="trade-hero-item"><strong id="tpKamiUsed">0</strong><span>已发放</span></div>
+        <div class="trade-hero-item"><strong id="tpPaid">0</strong><span>已成交</span></div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <span class="stat-label">今日成交金额</span>
+          <strong class="stat-num" id="tsTodayAmount">0.00</strong>
+          <span class="stat-sub" id="tsTodayAmountSub">昨日 0.00</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">今日订单数</span>
+          <strong class="stat-num" id="tsTodayOrders">0</strong>
+          <span class="stat-sub" id="tsTodayOrdersSub">昨日 0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">累计成交金额</span>
+          <strong class="stat-num" id="tsTotalAmount">0.00</strong>
+          <span class="stat-sub">全部已支付订单</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">累计订单数</span>
+          <strong class="stat-num" id="tsTotalOrders">0</strong>
+          <span class="stat-sub" id="tsTotalPaidSub">已成交 0</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head-row">
+          <h3>交易趋势</h3>
+          <select id="tradeRange" class="stat-range">
+            <option value="7">最近 7 天</option>
+            <option value="14" selected>最近 14 天</option>
+            <option value="30">最近 30 天</option>
+          </select>
+        </div>
+        <div class="chart-wrap">
+          <svg class="stat-chart" id="tradeChart" viewBox="0 0 720 220" preserveAspectRatio="none"></svg>
+          <div class="chart-legend">
+            <span class="lg-item"><i class="lg-dot lg-unique"></i>成交金额</span>
+            <span class="lg-item"><i class="lg-dot lg-visit"></i>订单数</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-pay-kami" hidden>
+      <header class="view-head">
+        <h2>卡密管理</h2>
+        <p>批量生成卡密，用户付款后自动发放。</p>
+      </header>
+
+      <div class="panel">
+        <div class="panel-head-row">
+          <h3>库存概况</h3>
+          <span class="pay-badge" id="kamiStats">—</span>
+        </div>
+        <div class="grid-2">
+          <label class="field">
+            <span class="field-label">生成数量</span>
+            <input id="kamiCount" type="number" min="1" max="1000" value="10" />
+          </label>
+          <label class="field">
+            <span class="field-label">单价（元）</span>
+            <input id="kamiPrice" type="text" placeholder="10.00" value="10.00" spellcheck="false" />
+          </label>
+        </div>
+        <label class="field">
+          <span class="field-label">批次备注（可选）</span>
+          <input id="kamiBatch" type="text" maxlength="60" placeholder="例如：10 月第一批" />
+        </label>
+        <div class="row">
+          <button class="btn primary" id="genKami" type="button">批量生成</button>
+          <span class="msg inline" id="kamiMsg"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head-row">
+          <h3>卡密列表</h3>
+          <div class="row gap">
+            <input id="kamiSearch" type="search" class="mini-search" placeholder="搜索卡密…" />
+            <button class="btn ghost small" id="refreshKami" type="button">刷新</button>
+          </div>
+        </div>
+        <div class="pay-table-wrap">
+          <table class="pay-table">
+            <thead>
+              <tr>
+                <th>卡密</th>
+                <th>价格</th>
+                <th>状态</th>
+                <th>批次</th>
+                <th>时间</th>
+                <th class="num">操作</th>
+              </tr>
+            </thead>
+            <tbody id="kamiBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-pay-orders" hidden>
+      <header class="view-head">
+        <h2>订单记录</h2>
+        <p>所有支付订单与发放的卡密。</p>
+      </header>
+
+      <div class="panel">
+        <div class="panel-head-row">
+          <h3>订单列表</h3>
+          <div class="row gap">
+            <select id="orderFilter" class="stat-range">
+              <option value="">全部状态</option>
+              <option value="WAIT_BUYER_PAY">待支付</option>
+              <option value="TRADE_SUCCESS">已支付</option>
+              <option value="TRADE_CLOSED">已关闭</option>
+              <option value="TRADE_REFUND">已退款</option>
+            </select>
+            <button class="btn ghost small" id="refreshOrders" type="button">刷新</button>
+          </div>
+        </div>
+        <div class="pay-table-wrap">
+          <table class="pay-table">
+            <thead>
+              <tr>
+                <th>订单号</th>
+                <th>类型</th>
+                <th>金额</th>
+                <th>状态</th>
+                <th>卡密</th>
+                <th>时间</th>
+              </tr>
+            </thead>
+            <tbody id="orderBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-pay-config" hidden>
+      <header class="view-head">
+        <h2>交易设置</h2>
+        <p>配置支付接口、前台入口与数据管理。</p>
       </header>
 
       <div class="panel">
         <h3>总开关</h3>
         <label class="switch-row">
-          <span><b>启用支付功能</b><em>关闭后所有支付入口都会隐藏</em></span>
+          <span><b>启用交易功能</b><em>关闭后所有支付入口都会隐藏</em></span>
           <input type="checkbox" id="payEnabled" />
         </label>
       </div>
@@ -668,11 +839,12 @@
         <h3>接口配置</h3>
         <label class="field">
           <span class="field-label">接口地址</span>
-          <input id="payApiUrl" type="text" placeholder="https://paypro.youxi186.com" spellcheck="false" />
+          <input id="payApiUrl" type="text" placeholder="https://你的支付平台域名" spellcheck="false" />
+          <span class="field-hint">填写支付平台提供的接口根地址，例如 https://pay.example.com</span>
         </label>
         <label class="field">
           <span class="field-label">商户编号 (pid)</span>
-          <input id="payPid" type="text" placeholder="2088 开头" spellcheck="false" />
+          <input id="payPid" type="text" placeholder="商户编号" spellcheck="false" />
         </label>
         <label class="field">
           <span class="field-label">商户密钥</span>
@@ -686,7 +858,7 @@
         </label>
         <label class="field">
           <span class="field-label">支付完成跳转地址 (return_url)</span>
-          <input id="payReturnUrl" type="text" placeholder="https://你的域名/pay/result" spellcheck="false" />
+          <input id="payReturnUrl" type="text" placeholder="https://你的域名/" spellcheck="false" />
         </label>
         <div class="row">
           <button class="btn primary" id="savePay" type="button">保存配置</button>
@@ -699,7 +871,7 @@
         <h3>前台入口</h3>
         <div class="switch-list">
           <label class="switch-row">
-            <span><b>主页赞赏按钮</b><em>主页底部显示「赞赏」入口，自定义金额</em></span>
+            <span><b>主页赞赏按钮</b><em>主页显示「赞赏」入口，支持自定义金额</em></span>
             <input type="checkbox" id="payEntryDonate" />
           </label>
           <label class="switch-row">
@@ -737,72 +909,15 @@
         </div>
       </div>
 
-      <div class="panel">
-        <div class="panel-head-row">
-          <h3>卡密库存</h3>
-          <span class="pay-badge" id="kamiStats">—</span>
-        </div>
-        <div class="grid-2">
-          <label class="field">
-            <span class="field-label">生成数量</span>
-            <input id="kamiCount" type="number" min="1" max="1000" value="10" />
-          </label>
-          <label class="field">
-            <span class="field-label">单价（元）</span>
-            <input id="kamiPrice" type="text" placeholder="10.00" value="10.00" spellcheck="false" />
-          </label>
-        </div>
-        <label class="field">
-          <span class="field-label">批次备注（可选）</span>
-          <input id="kamiBatch" type="text" maxlength="60" placeholder="例如：10 月第一批" />
-        </label>
+      <div class="panel panel-danger">
+        <h3>重置所有</h3>
+        <p class="field-hint" style="margin-bottom:12px">
+          将清空全部订单记录与卡密库存，此操作不可恢复。支付接口配置会保留。
+        </p>
         <div class="row">
-          <button class="btn primary" id="genKami" type="button">批量生成</button>
-          <span class="msg inline" id="kamiMsg"></span>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head-row">
-          <h3>卡密列表</h3>
-          <button class="btn ghost small" id="refreshKami" type="button">刷新</button>
-        </div>
-        <div class="pay-table-wrap">
-          <table class="pay-table">
-            <thead>
-              <tr>
-                <th>卡密</th>
-                <th>价格</th>
-                <th>状态</th>
-                <th>批次</th>
-                <th>时间</th>
-                <th class="num">操作</th>
-              </tr>
-            </thead>
-            <tbody id="kamiBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head-row">
-          <h3>订单记录</h3>
-          <button class="btn ghost small" id="refreshOrders" type="button">刷新</button>
-        </div>
-        <div class="pay-table-wrap">
-          <table class="pay-table">
-            <thead>
-              <tr>
-                <th>订单号</th>
-                <th>类型</th>
-                <th>金额</th>
-                <th>状态</th>
-                <th>卡密</th>
-                <th>时间</th>
-              </tr>
-            </thead>
-            <tbody id="orderBody"></tbody>
-          </table>
+          <input id="resetConfirm" type="text" placeholder="输入 RESET 以确认" />
+          <button class="btn danger" id="resetTrade" type="button">重置所有</button>
+          <span class="msg inline" id="resetMsg"></span>
         </div>
       </div>
     </section>
@@ -1057,12 +1172,12 @@
 
 <div id="modalRoot"></div>
 
-<script src="/assets/icons.js?v=16"></script>
+<script src="/assets/icons.js?v=17"></script>
 <script>window.__APP_VERSION__ = '1.2.0';</script>
-<script src="/assets/cropper.min.js?v=16"></script>
-<script src="/assets/cover.js?v=16"></script>
-<script src="/assets/posts-admin.js?v=16"></script>
-<script src="/assets/pay-admin.js?v=16"></script>
-<script src="/assets/backstage.js?v=16"></script>
+<script src="/assets/cropper.min.js?v=17"></script>
+<script src="/assets/cover.js?v=17"></script>
+<script src="/assets/posts-admin.js?v=17"></script>
+<script src="/assets/pay-admin.js?v=17"></script>
+<script src="/assets/backstage.js?v=17"></script>
 </body>
 </html>

@@ -50,7 +50,7 @@ const DEFAULTS = {
   tg_sub: '加入就是最大的帮助',
   tg_url: 'https://t.me/COASCN',
   pay_enabled: '0',
-  pay_api_url: 'https://paypro.youxi186.com',
+  pay_api_url: '',
   pay_pid: '',
   pay_key: '',
   pay_notify_url: '',

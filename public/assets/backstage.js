@@ -462,7 +462,9 @@
       location.hash = view;
       if (view === 'stats') loadStats();
       if (view === 'posts' && window.GRWZ && window.GRWZ.loadPosts) window.GRWZ.loadPosts();
-      if (view === 'payment' && window.GRWZ && window.GRWZ.loadPay) window.GRWZ.loadPay();
+      if (view === 'pay-overview' && window.GRWZ && window.GRWZ.loadOverview) window.GRWZ.loadOverview();
+      if ((view === 'pay-kami' || view === 'pay-orders' || view === 'pay-config') &&
+          window.GRWZ && window.GRWZ.loadPay) window.GRWZ.loadPay();
     });
   });
 

@@ -297,3 +297,85 @@ export function markPaid(order, notifyParams) {
   const updated = updateOrder(order.id, patch);
   return { already: false, order: updated, kami };
 }
+
+export function tradeOverview(days) {
+  const n = Math.max(1, Math.min(90, parseInt(days, 10) || 14));
+  const orders = allOrders();
+  const paid = orders.filter((o) => o.status === 'TRADE_SUCCESS');
+
+  const today = new Date();
+  const dayKey = (d) => {
+    const dt = d ? new Date(d) : new Date();
+    return dt.getFullYear() + '-' +
+      String(dt.getMonth() + 1).padStart(2, '0') + '-' +
+      String(dt.getDate()).padStart(2, '0');
+  };
+
+  const buckets = {};
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+    buckets[dayKey(d)] = { date: dayKey(d), orders: 0, amount: 0 };
+  }
+
+  let totalAmount = 0;
+  for (const o of paid) {
+    const amt = Number(o.amount) || 0;
+    totalAmount += amt;
+    const k = dayKey(o.paid_at || o.created_at);
+    if (buckets[k]) {
+      buckets[k].orders += 1;
+      buckets[k].amount = Number((buckets[k].amount + amt).toFixed(2));
+    }
+  }
+
+  const tKey = dayKey();
+  const yD = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  const yKey = dayKey(yD);
+
+  const todayOrders = orders.filter((o) => dayKey(o.created_at) === tKey);
+  const yOrders = orders.filter((o) => dayKey(o.created_at) === yKey);
+
+  const todayPaid = paid.filter((o) => dayKey(o.paid_at || o.created_at) === tKey);
+  const yPaid = paid.filter((o) => dayKey(o.paid_at || o.created_at) === yKey);
+
+  const sum = (arr) => arr.reduce((a, o) => a + (Number(o.amount) || 0), 0);
+
+  const kami = kamiStats();
+  const waitPay = orders.filter((o) => o.status === 'WAIT_BUYER_PAY').length;
+
+  return {
+    series: Object.values(buckets),
+    today: {
+      amount: Number(sum(todayPaid).toFixed(2)),
+      orders: todayOrders.length,
+      paid: todayPaid.length,
+    },
+    yesterday: {
+      amount: Number(sum(yPaid).toFixed(2)),
+      orders: yOrders.length,
+      paid: yPaid.length,
+    },
+    total: {
+      amount: Number(totalAmount.toFixed(2)),
+      orders: orders.length,
+      paid: paid.length,
+    },
+    pending: {
+      wait_pay: waitPay,
+      kami_available: kami.available,
+      kami_used: kami.used,
+      kami_total: kami.total,
+    },
+  };
+}
+
+export function resetAllTrade() {
+  const s = store.load();
+  s.payOrders = [];
+  s.kamiStock = [];
+  s.kamiIssued = [];
+  s.seq.payOrders = 0;
+  s.seq.kamiStock = 0;
+  store.save();
+  return true;
+}
