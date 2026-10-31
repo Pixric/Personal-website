@@ -5,6 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import * as store from './src/store.js';
+import * as pay from './src/pay.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = __dirname;
@@ -165,6 +166,19 @@ async function readJson(req) {
   const buf = await readBody(req, 2 * 1024 * 1024);
   if (!buf.length) return {};
   try { return JSON.parse(buf.toString('utf8')); } catch { return {}; }
+}
+
+async function readRaw(req) {
+  return readBody(req, 1024 * 1024);
+}
+
+function clientIp(req) {
+  const xf = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  if (xf) return xf;
+  const real = String(req.headers['x-real-ip'] || '').trim();
+  if (real) return real;
+  const sock = req.socket && req.socket.remoteAddress ? req.socket.remoteAddress : '';
+  return sock.replace(/^::ffff:/, '') || '127.0.0.1';
 }
 
 function parseMultipart(buf, contentType) {
@@ -334,6 +348,7 @@ function publicSite() {
       ui_round: num(s.ui_round, 0, 0, 100),
       posts_enabled: s.posts_enabled === '1',
       edition: s.site_edition || '',
+      pay: pay.publicPayConfig(),
       animations: {
         intro: s.anim_intro !== '0',
         intro_duration: num(s.anim_intro_duration, 1, 0.2, 3),
@@ -379,12 +394,16 @@ const EDITABLE = [
   'dark_mode', 'dark_bg_dim', 'ui_round', 'posts_enabled', 'site_edition',
   'footer_text', 'footer_opacity', 'footer_color', 'footer_link',
   'tg_enabled', 'tg_title', 'tg_sub', 'tg_url', 'security_entry', 'site_url',
+  'pay_enabled', 'pay_api_url', 'pay_pid', 'pay_key', 'pay_notify_url', 'pay_return_url',
+  'pay_entry_donate', 'pay_entry_page', 'pay_entry_post',
+  'donate_title', 'donate_desc', 'donate_presets', 'kami_title', 'kami_desc',
+  'pay_notify_secret',
 ];
 
 const BOOL_KEYS = [
   'music_enabled', 'github_show_repos', 'github_show_chart', 'bg_api_enabled',
   'anim_intro', 'anim_bg', 'anim_reveal', 'anim_avatar', 'anim_player', 'tg_enabled', 'dark_mode',
-  'posts_enabled',
+  'posts_enabled', 'pay_enabled', 'pay_entry_donate', 'pay_entry_page', 'pay_entry_post',
 ];
 
 function adminState() {
@@ -396,11 +415,12 @@ function adminState() {
   settings.bg_remote_url = s.bg_url || '';
   settings.font_url = assetUrl(s.font_key);
   settings.has_uploaded_bg = Boolean(s.bg_key);
+  settings.pay_key_set = Boolean(s.pay_key);
+  settings.pay_donate_presets = s.donate_presets || '5,10,20,50';
 
   return {
     ok: true,
-    settings: settings,
-    tracks: store.allTracks().map((t) => Object.assign({}, t, {
+    settings: settings,    tracks: store.allTracks().map((t) => Object.assign({}, t, {
       url: assetUrl(t.r2_key),
       cover_url: assetUrl(t.cover_key),
     })),
@@ -753,6 +773,187 @@ async function api(req, res, pathname, method) {
     return sendJson(res, { ok: true, is_new: r.isNew }, 200, headers);
   }
 
+  if (pathname === '/api/pay/config' && method === 'GET') {
+    return sendJson(res, { ok: true, pay: pay.publicPayConfig() });
+  }
+
+  if (pathname === '/api/pay/kami/price' && method === 'GET') {
+    const stats = pay.kamiStats();
+    return sendJson(res, {
+      ok: true,
+      available: stats.available,
+      price: stats.price || '',
+    });
+  }
+
+  if (pathname === '/api/pay/create' && method === 'POST') {
+    const c = pay.payConfig();
+    if (!c.enabled) return sendJson(res, { ok: false, error: '支付功能未开启' }, 403);
+
+    const body = await readJson(req);
+    const kind = body.kind === 'kami' ? 'kami' : 'donate';
+    const paytype = String(body.paytype || 'alipay').slice(0, 20);
+
+    let amount = '';
+    let subject = '';
+
+    if (kind === 'kami') {
+      if (!c.entryPage) return sendJson(res, { ok: false, error: '卡密购买未开启' }, 403);
+      const stats = pay.kamiStats();
+      if (!stats.available) return sendJson(res, { ok: false, error: '卡密暂时缺货，请稍后再试' }, 409);
+      amount = stats.price;
+      subject = c.kamiTitle;
+    } else {
+      if (!c.entryDonate) return sendJson(res, { ok: false, error: '赞赏未开启' }, 403);
+      amount = String(body.amount || '').trim();
+      if (!/^\d+(\.\d{1,2})?$/.test(amount)) {
+        return sendJson(res, { ok: false, error: '请输入正确的金额' }, 400);
+      }
+      if (Number(amount) < 0.01 || Number(amount) > 100000) {
+        return sendJson(res, { ok: false, error: '金额需在 0.01 ~ 100000 之间' }, 400);
+      }
+      amount = Number(amount).toFixed(2);
+      subject = c.donateTitle;
+    }
+
+    const outTradeNo = pay.nextOutTradeNo(kind === 'kami' ? 'KM' : 'DON');
+
+    try {
+      const created = await pay.createPayment({
+        amount,
+        subject,
+        paytype,
+        outTradeNo,
+        attach: kind,
+        clientIp: clientIp(req),
+      });
+
+      pay.createOrder({
+        out_trade_no: created.outTradeNo,
+        trade_no: created.tradeNo,
+        kind,
+        amount: created.amount,
+        subject,
+        paytype,
+        pay_url: created.payUrl,
+      });
+
+      return sendJson(res, {
+        ok: true,
+        out_trade_no: created.outTradeNo,
+        pay_url: created.payUrl,
+        amount: created.amount,
+        kind,
+      });
+    } catch (err) {
+      console.error('[pay-create]', err && err.message);
+      return sendJson(res, { ok: false, error: err.message || '下单失败' }, 502);
+    }
+  }
+
+  const payStatusMatch = /^\/api\/pay\/status\/([A-Za-z0-9]+)$/.exec(pathname);
+  if (payStatusMatch && method === 'GET') {
+    const no = payStatusMatch[1];
+    const order = pay.findOrderByOutTradeNo(no);
+    if (!order) return sendJson(res, { ok: false, error: '订单不存在' }, 404);
+
+    if (order.status !== 'TRADE_SUCCESS' && order.status !== 'TRADE_REFUND') {
+      try {
+        const q = await pay.queryPayment(no);
+        if (q.status === 'TRADE_SUCCESS') {
+          pay.updateOrder(order.id, {
+            status: 'TRADE_SUCCESS',
+            paid_at: Date.now(),
+            trade_no: q.tradeNo || order.trade_no || '',
+          });
+          const fresh = pay.findOrderByOutTradeNo(no);
+          if (fresh.kind === 'kami' && !fresh.kami) {
+            const got = pay.allocateKami(fresh.id);
+            if (got) pay.updateOrder(fresh.id, { kami: got.code });
+          }
+        } else if (q.status) {
+          pay.updateOrder(order.id, { status: q.status });
+        }
+      } catch (err) {
+        console.error('[pay-status]', err && err.message);
+      }
+    }
+
+    const fresh = pay.findOrderByOutTradeNo(no);
+    return sendJson(res, {
+      ok: true,
+      out_trade_no: fresh.out_trade_no,
+      kind: fresh.kind,
+      amount: fresh.amount,
+      status: fresh.status,
+      paid: fresh.status === 'TRADE_SUCCESS',
+      kami: fresh.status === 'TRADE_SUCCESS' ? (fresh.kami || '') : '',
+    });
+  }
+
+  if (pathname === '/api/pay/notify' && method === 'POST') {
+    const raw = await readRaw(req);
+    const params = new URLSearchParams(raw.toString('utf8'));
+    const map = {};
+    for (const [k, v] of params.entries()) map[k] = v;
+
+    const c = pay.payConfig();
+    if (!c.key) {
+      console.error('[pay-notify] 未配置密钥');
+      return sendText(res, 'fail', 500);
+    }
+
+    if (!pay.verifySign(map, c.key, map.sign_type || 'MD5')) {
+      console.error('[pay-notify] 签名验证失败', map.out_trade_no);
+      return sendText(res, 'fail', 400);
+    }
+
+    const order = pay.findOrderByOutTradeNo(map.out_trade_no)
+      || (map.trade_no ? pay.findOrderByTradeNo(map.trade_no) : null);
+
+    if (!order) {
+      console.error('[pay-notify] 订单不存在', map.out_trade_no);
+      return sendText(res, 'fail', 404);
+    }
+
+    if (map.trade_status === 'TRADE_SUCCESS') {
+      const r = pay.markPaid(order, map);
+      console.log('[pay-notify] 支付成功', order.out_trade_no, r.already ? '(重复通知)' : '', r.kami ? '卡密=' + r.kami : '');
+    } else if (map.trade_status) {
+      pay.updateOrder(order.id, { status: map.trade_status });
+      console.log('[pay-notify] 状态变更', order.out_trade_no, map.trade_status);
+    }
+
+    return sendText(res, 'success', 200);
+  }
+
+  if (pathname === '/api/pay/kami/redeem' && method === 'POST') {
+    const body = await readJson(req);
+    const code = String(body.code || '').trim().toUpperCase();
+    if (!code) return sendJson(res, { ok: false, error: '请输入卡密' }, 400);
+
+    const kami = pay.findKamiByCode(code);
+    if (!kami) return sendJson(res, { ok: false, error: '卡密不存在' }, 404);
+
+    if (kami.status === 'used' && kami.issued_to) {
+      const order = pay.allOrders().find((o) => String(o.id) === String(kami.issued_to));
+      return sendJson(res, {
+        ok: true,
+        valid: true,
+        code: kami.code,
+        price: kami.price,
+        issued_at: order ? order.paid_at : kami.used_at,
+        note: kami.note || '',
+      });
+    }
+
+    if (kami.status === 'available') {
+      return sendJson(res, { ok: false, error: '该卡密尚未激活，请先完成支付' }, 409);
+    }
+
+    return sendJson(res, { ok: false, error: '卡密状态异常' }, 400);
+  }
+
   if (pathname === '/api/posts' && method === 'GET') {
     const s = store.getSettings();
     if (s.posts_enabled !== '1') return sendJson(res, { ok: true, enabled: false, posts: [] });
@@ -868,6 +1069,76 @@ async function api(req, res, pathname, method) {
           file_icon_url: assetUrl(p.file_icon_key),
         })),
       });
+    }
+
+    if (rest === 'pay/state' && method === 'GET') {
+      const c = pay.payConfig();
+      return sendJson(res, {
+        ok: true,
+        pay: {
+          enabled: c.enabled,
+          api_url: c.apiUrl,
+          pid: c.pid,
+          key_set: Boolean(c.key),
+          notify_url: c.notifyUrl,
+          return_url: c.returnUrl,
+          entry_donate: c.entryDonate,
+          entry_page: c.entryPage,
+          entry_post: c.entryPost,
+          donate_title: c.donateTitle,
+          donate_desc: c.donateDesc,
+          donate_presets: c.donatePresets.join(','),
+          kami_title: c.kamiTitle,
+          kami_desc: c.kamiDesc,
+          site_url: store.getSettings().site_url || '',
+        },
+        kami: pay.kamiStats(),
+        orders: pay.allOrders().slice(0, 100),
+        kami_list: pay.listKami().slice(0, 300),
+      });
+    }
+
+    if (rest === 'pay/kami' && method === 'POST') {
+      const body = await readJson(req);
+      const count = parseInt(body.count, 10) || 1;
+      const price = body.price;
+      if (!/^\d+(\.\d{1,2})?$/.test(String(price || ''))) {
+        return sendJson(res, { ok: false, error: '请填写正确的价格' }, 400);
+      }
+      const made = pay.addKamiStock(count, price, body.batch, body.note);
+      return sendJson(res, { ok: true, count: made.length, items: made });
+    }
+
+    if (rest.startsWith('pay/kami/') && method === 'DELETE') {
+      const id = parseInt(rest.slice('pay/kami/'.length), 10);
+      if (!Number.isInteger(id)) return sendJson(res, { ok: false, error: 'ID 不合法' }, 400);
+      const ok = pay.removeKami(id);
+      if (!ok) return sendJson(res, { ok: false, error: '卡密不存在' }, 404);
+      return sendJson(res, { ok: true });
+    }
+
+    if (rest === 'pay/test') {
+      const c = pay.payConfig();
+      if (!c.apiUrl || !c.pid || !c.key) {
+        return sendJson(res, { ok: false, error: '请先填写接口地址、商户号和密钥' }, 400);
+      }
+      try {
+        const sample = { pid: c.pid, timestamp: String(Math.floor(Date.now() / 1000)), sign_type: 'MD5' };
+        const sign = pay.buildSign(sample, c.key, 'MD5');
+        return sendJson(res, {
+          ok: true,
+          message: '配置格式正确，签名已生成',
+          sample_sign: sign,
+          api_url: c.apiUrl,
+          notify_url: c.notifyUrl || '(未填写)',
+        });
+      } catch (err) {
+        return sendJson(res, { ok: false, error: err.message }, 500);
+      }
+    }
+
+    if (rest === 'pay/orders' && method === 'GET') {
+      return sendJson(res, { ok: true, orders: pay.allOrders().slice(0, 500) });
     }
 
     if (rest === 'posts' && method === 'POST') {

@@ -69,6 +69,7 @@
     renderAbout(site);
     renderSocials(data.socials || []);
     renderFooter(site);
+    setupSupport(site);
 
     applyTheme(site);
 
@@ -243,6 +244,148 @@
       }
       b.innerHTML = socialIconMarkup(item) + '<span>' + esc(item.label) + '</span>';
       list.appendChild(b);
+    });
+  }
+
+  function setupSupport(site) {
+    var p = site.pay || {};
+    if (!p.enabled || !p.entryDonate) return;
+
+    var bar = $('supportBar');
+    var btn = $('supportBtn');
+    var mask = $('payMask');
+    if (!bar || !btn || !mask) return;
+
+    $('supportBtnText').textContent = p.donateTitle || '赞赏';
+    bar.hidden = false;
+
+    var currentKind = 'donate';
+    var currentAmount = '';
+
+    function renderPresets() {
+      var box = $('payPresets');
+      box.innerHTML = '';
+      (p.donatePresets || []).forEach(function (v) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'pay-preset';
+        b.textContent = '¥' + v;
+        b.addEventListener('click', function () {
+          Array.prototype.forEach.call(box.children, function (c) {
+            c.classList.toggle('active', c === b);
+          });
+          $('payAmount').value = Number(v).toFixed(2);
+          currentAmount = Number(v).toFixed(2);
+        });
+        box.appendChild(b);
+      });
+    }
+
+    function openPay(kind) {
+      currentKind = kind || 'donate';
+      $('payTitle').textContent = currentKind === 'kami'
+        ? (p.kamiTitle || '购买卡密')
+        : (p.donateTitle || '赞赏一下');
+      $('paySub').textContent = currentKind === 'kami'
+        ? (p.kamiDesc || '')
+        : (p.donateDesc || '');
+      $('payTip').textContent = currentKind === 'kami'
+        ? '付款成功后会自动发放卡密'
+        : '感谢你的支持';
+      mask.hidden = false;
+
+      if (currentKind === 'kami') {
+        $('payPresets').hidden = true;
+        $('payAmount').closest('.pay-amount-field').hidden = true;
+        fetch('/api/pay/kami/price')
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            currentAmount = d.price || '';
+            $('paySubmit').textContent = d.available
+              ? '支付 ' + d.price + ' 元'
+              : '暂时缺货';
+            $('paySubmit').disabled = !d.available;
+          })
+          .catch(function () {});
+      } else {
+        $('payPresets').hidden = false;
+        $('payAmount').closest('.pay-amount-field').hidden = false;
+        $('paySubmit').textContent = '去支付';
+        $('paySubmit').disabled = false;
+        renderPresets();
+        var first = (p.donatePresets || [])[0];
+        if (first) {
+          $('payAmount').value = Number(first).toFixed(2);
+          currentAmount = Number(first).toFixed(2);
+          if ($('payPresets').firstChild) $('payPresets').firstChild.classList.add('active');
+        }
+      }
+    }
+
+    function closePay() {
+      mask.hidden = true;
+    }
+
+    btn.addEventListener('click', function () { openPay('donate'); });
+    $('payClose').addEventListener('click', closePay);
+    mask.addEventListener('click', function (e) { if (e.target === mask) closePay(); });
+
+    if (new URLSearchParams(location.search).get('openpay') === '1') {
+      setTimeout(function () { openPay('donate'); }, 400);
+    }
+
+    Array.prototype.forEach.call(document.querySelectorAll('.pay-type'), function (el) {
+      el.addEventListener('click', function () {
+        Array.prototype.forEach.call(document.querySelectorAll('.pay-type'), function (x) {
+          x.classList.toggle('active', x === el);
+        });
+      });
+    });
+
+    $('payAmount').addEventListener('input', function () {
+      currentAmount = this.value;
+      Array.prototype.forEach.call($('payPresets').children, function (c) {
+        c.classList.remove('active');
+      });
+    });
+
+    $('paySubmit').addEventListener('click', function () {
+      var btnEl = this;
+      var tip = $('payTip');
+      var amount = String(currentAmount || '').trim();
+
+      if (currentKind === 'donate' && !/^\d+(\.\d{1,2})?$/.test(amount)) {
+        tip.textContent = '请输入正确的金额';
+        return;
+      }
+
+      var typeEl = document.querySelector('.pay-type.active');
+      var paytype = typeEl ? typeEl.getAttribute('data-type') : 'alipay';
+
+      btnEl.disabled = true;
+      tip.textContent = '正在创建订单…';
+
+      fetch('/api/pay/create', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ kind: currentKind, amount: amount, paytype: paytype }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.ok) throw new Error(d.error || '下单失败');
+          tip.textContent = '订单已创建，正在跳转支付…';
+          if (d.pay_url) {
+            location.href = d.pay_url;
+          } else {
+            tip.textContent = '未获取到支付链接，请联系站长';
+            btnEl.disabled = false;
+          }
+        })
+        .catch(function (e) {
+          tip.textContent = e.message;
+          btnEl.disabled = false;
+        });
     });
   }
 

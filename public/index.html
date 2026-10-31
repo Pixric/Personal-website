@@ -76,10 +76,54 @@
 
   <footer class="site-footer" id="siteFooter" hidden></footer>
 
+  <div class="support-bar" id="supportBar" hidden>
+    <button class="support-btn" id="supportBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a3 3 0 0 1 0 6h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"/><path d="M6 1v3M10 1v3M14 1v3"/></svg>
+      <span id="supportBtnText">赞赏</span>
+    </button>
+  </div>
+
   <div class="source-note" id="sourceNote">
     <a href="https://github.com/Pixric/Personal-website" target="_blank" rel="noopener">
       在 GitHub 查看我们的源码
     </a>
+  </div>
+</div>
+
+<div class="pay-mask" id="payMask" hidden>
+  <div class="pay-panel card">
+    <div class="pay-head">
+      <div>
+        <div class="pay-title" id="payTitle">赞赏一下</div>
+        <div class="pay-sub" id="paySub"></div>
+      </div>
+      <button class="pay-close" id="payClose" type="button" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <div class="pay-body">
+      <div class="pay-presets" id="payPresets"></div>
+      <label class="pay-amount-field">
+        <span>自定义金额</span>
+        <div class="pay-amount-row">
+          <span class="pay-cur">¥</span>
+          <input type="text" id="payAmount" inputmode="decimal" placeholder="0.00" />
+        </div>
+      </label>
+      <div class="pay-types" id="payTypes">
+        <label class="pay-type active" data-type="alipay">
+          <input type="radio" name="paytype" value="alipay" checked hidden />
+          <span>支付宝</span>
+        </label>
+        <label class="pay-type" data-type="wxpay">
+          <input type="radio" name="paytype" value="wxpay" hidden />
+          <span>微信支付</span>
+        </label>
+      </div>
+      <button class="pay-submit" id="paySubmit" type="button">去支付</button>
+      <p class="pay-tip" id="payTip"></p>
+    </div>
   </div>
 </div>
 

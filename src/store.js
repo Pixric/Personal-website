@@ -49,6 +49,21 @@ const DEFAULTS = {
   tg_title: '加入我的频道',
   tg_sub: '加入就是最大的帮助',
   tg_url: 'https://t.me/COASCN',
+  pay_enabled: '0',
+  pay_api_url: 'https://paypro.youxi186.com',
+  pay_pid: '',
+  pay_key: '',
+  pay_notify_url: '',
+  pay_return_url: '',
+  pay_entry_donate: '1',
+  pay_entry_page: '1',
+  pay_entry_post: '0',
+  donate_title: '赞赏一下',
+  donate_desc: '如果内容对你有帮助，可以请我喝杯咖啡',
+  donate_presets: '5,10,20,50',
+  kami_title: '购买卡密',
+  kami_desc: '付款后自动发放卡密',
+  pay_notify_secret: '',
 };
 
 let state = null;
@@ -65,6 +80,10 @@ function emptyState() {
     stats: { days: {}, visitors: [], visits: 0 },
     posts: [],
     postLikes: {},
+    payOrders: [],
+    kamiStock: [],
+    kamiIssued: [],
+    seq: { admins: 0, tracks: 0, socials: 0, posts: 0, payOrders: 0, kamiStock: 0 },
   };
 }
 
@@ -91,6 +110,9 @@ export function load() {
         stats: raw.stats || { days: {}, visitors: [], visits: 0 },
         posts: Array.isArray(raw.posts) ? raw.posts : [],
         postLikes: raw.postLikes || {},
+        payOrders: Array.isArray(raw.payOrders) ? raw.payOrders : [],
+        kamiStock: Array.isArray(raw.kamiStock) ? raw.kamiStock : [],
+        kamiIssued: Array.isArray(raw.kamiIssued) ? raw.kamiIssued : [],
       };
     } catch {
       const bak = DB_FILE + '.corrupt-' + Date.now();

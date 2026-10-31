@@ -894,3 +894,43 @@ input[type="range"]::-moz-range-thumb{
   position:relative;
   top:-1px;
 }
+
+.pay-badge{
+  font-size:12px; color:var(--text-2);
+  background:var(--bg-mute);
+  padding:4px 10px; border-radius:99px;
+  white-space:nowrap;
+}
+.pay-table-wrap{ overflow-x:auto; }
+.pay-table{
+  width:100%; border-collapse:collapse; font-size:12.5px;
+}
+.pay-table th{
+  text-align:left; font-weight:500; font-size:11.5px;
+  color:var(--text-3); padding:8px 10px;
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+.pay-table td{
+  padding:8px 10px; border-bottom:1px solid var(--border);
+  vertical-align:middle;
+}
+.pay-table tr:last-child td{ border-bottom:none; }
+.pay-table .num{ text-align:right; }
+.pay-table tbody tr:hover{ background:var(--bg-soft); }
+.pay-empty{
+  text-align:center; color:var(--text-3);
+  padding:24px 10px !important; font-size:12.5px;
+}
+.kami-code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:12px; letter-spacing:.02em;
+  background:var(--bg-mute);
+  padding:2px 6px; border-radius:4px;
+}
+.pay-tag{
+  display:inline-block;
+  font-size:11px; padding:2px 8px; border-radius:99px;
+}
+.pay-tag.pay-ok{ background:#e7f7ee; color:#0a7a45; }
+.pay-tag.pay-muted{ background:var(--bg-mute); color:var(--text-3); }

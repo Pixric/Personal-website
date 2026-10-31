@@ -441,6 +441,9 @@
         window.__postsInited = true;
         window.GRWZ.initPosts();
       }
+      if (window.GRWZ && window.GRWZ.initPay && !window.__payInited) {
+        window.GRWZ.initPay();
+      }
     }).catch(function (e) {
       if (e.status === 401) { showLogin(); return; }
       toast(e.message, 'error', '加载失败');
@@ -459,6 +462,7 @@
       location.hash = view;
       if (view === 'stats') loadStats();
       if (view === 'posts' && window.GRWZ && window.GRWZ.loadPosts) window.GRWZ.loadPosts();
+      if (view === 'payment' && window.GRWZ && window.GRWZ.loadPay) window.GRWZ.loadPay();
     });
   });
 

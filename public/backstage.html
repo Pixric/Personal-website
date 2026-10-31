@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex, nofollow" />
 <title>后台管理</title>
-<link rel="stylesheet" href="/assets/backstage.css?v=15" />
-<link rel="stylesheet" href="/assets/cropper.min.css?v=15" />
-<link rel="stylesheet" href="/assets/cover.css?v=15" />
-<link rel="stylesheet" href="/assets/posts-admin.css?v=15" />
+<link rel="stylesheet" href="/assets/backstage.css?v=16" />
+<link rel="stylesheet" href="/assets/cropper.min.css?v=16" />
+<link rel="stylesheet" href="/assets/cover.css?v=16" />
+<link rel="stylesheet" href="/assets/posts-admin.css?v=16" />
 </head>
 <body>
 
@@ -184,6 +184,10 @@
           <svg class="nav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
         <div class="nav-group-body">
+          <button class="nav-item" data-view="payment" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
+            <span class="nav-text">支付与卡密</span>
+          </button>
           <button class="nav-item" data-view="security" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.4 8.4-8 9-4.6-.6-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
             <span class="nav-text">安全与账号</span>
@@ -646,6 +650,163 @@
       </div>
     </section>
 
+    <section class="view" id="view-payment" hidden>
+      <header class="view-head">
+        <h2>支付与卡密</h2>
+        <p>对接卡密支付系统，付款后自动发放卡密。密钥仅保存在服务端。</p>
+      </header>
+
+      <div class="panel">
+        <h3>总开关</h3>
+        <label class="switch-row">
+          <span><b>启用支付功能</b><em>关闭后所有支付入口都会隐藏</em></span>
+          <input type="checkbox" id="payEnabled" />
+        </label>
+      </div>
+
+      <div class="panel">
+        <h3>接口配置</h3>
+        <label class="field">
+          <span class="field-label">接口地址</span>
+          <input id="payApiUrl" type="text" placeholder="https://paypro.youxi186.com" spellcheck="false" />
+        </label>
+        <label class="field">
+          <span class="field-label">商户编号 (pid)</span>
+          <input id="payPid" type="text" placeholder="2088 开头" spellcheck="false" />
+        </label>
+        <label class="field">
+          <span class="field-label">商户密钥</span>
+          <input id="payKey" type="password" placeholder="留空表示不修改" spellcheck="false" autocomplete="new-password" />
+          <span class="field-hint" id="payKeyHint">密钥只在服务端使用，不会发送到浏览器</span>
+        </label>
+        <label class="field">
+          <span class="field-label">异步通知地址 (notify_url)</span>
+          <input id="payNotifyUrl" type="text" placeholder="https://你的域名/api/pay/notify" spellcheck="false" />
+          <span class="field-hint">留空则自动使用当前站点地址</span>
+        </label>
+        <label class="field">
+          <span class="field-label">支付完成跳转地址 (return_url)</span>
+          <input id="payReturnUrl" type="text" placeholder="https://你的域名/pay/result" spellcheck="false" />
+        </label>
+        <div class="row">
+          <button class="btn primary" id="savePay" type="button">保存配置</button>
+          <button class="btn ghost" id="testPay" type="button">测试配置</button>
+          <span class="msg inline" id="payMsg"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>前台入口</h3>
+        <div class="switch-list">
+          <label class="switch-row">
+            <span><b>主页赞赏按钮</b><em>主页底部显示「赞赏」入口，自定义金额</em></span>
+            <input type="checkbox" id="payEntryDonate" />
+          </label>
+          <label class="switch-row">
+            <span><b>卡密购买页面</b><em>访问 /pay 可以购买卡密</em></span>
+            <input type="checkbox" id="payEntryPage" />
+          </label>
+        </div>
+        <div class="grid-2" style="margin-top:14px">
+          <label class="field">
+            <span class="field-label">赞赏标题</span>
+            <input id="donateTitle" type="text" maxlength="40" placeholder="赞赏一下" />
+          </label>
+          <label class="field">
+            <span class="field-label">赞赏预设金额（元，逗号分隔）</span>
+            <input id="donatePresets" type="text" placeholder="5,10,20,50" spellcheck="false" />
+          </label>
+        </div>
+        <label class="field">
+          <span class="field-label">赞赏说明</span>
+          <input id="donateDesc" type="text" maxlength="100" placeholder="如果内容对你有帮助…" />
+        </label>
+        <div class="grid-2">
+          <label class="field">
+            <span class="field-label">卡密页标题</span>
+            <input id="kamiTitle" type="text" maxlength="40" placeholder="购买卡密" />
+          </label>
+          <label class="field">
+            <span class="field-label">卡密页说明</span>
+            <input id="kamiDesc" type="text" maxlength="100" placeholder="付款后自动发放卡密" />
+          </label>
+        </div>
+        <div class="row">
+          <button class="btn primary" id="savePayEntry" type="button">保存入口设置</button>
+          <span class="msg inline" id="payEntryMsg"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head-row">
+          <h3>卡密库存</h3>
+          <span class="pay-badge" id="kamiStats">—</span>
+        </div>
+        <div class="grid-2">
+          <label class="field">
+            <span class="field-label">生成数量</span>
+            <input id="kamiCount" type="number" min="1" max="1000" value="10" />
+          </label>
+          <label class="field">
+            <span class="field-label">单价（元）</span>
+            <input id="kamiPrice" type="text" placeholder="10.00" value="10.00" spellcheck="false" />
+          </label>
+        </div>
+        <label class="field">
+          <span class="field-label">批次备注（可选）</span>
+          <input id="kamiBatch" type="text" maxlength="60" placeholder="例如：10 月第一批" />
+        </label>
+        <div class="row">
+          <button class="btn primary" id="genKami" type="button">批量生成</button>
+          <span class="msg inline" id="kamiMsg"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head-row">
+          <h3>卡密列表</h3>
+          <button class="btn ghost small" id="refreshKami" type="button">刷新</button>
+        </div>
+        <div class="pay-table-wrap">
+          <table class="pay-table">
+            <thead>
+              <tr>
+                <th>卡密</th>
+                <th>价格</th>
+                <th>状态</th>
+                <th>批次</th>
+                <th>时间</th>
+                <th class="num">操作</th>
+              </tr>
+            </thead>
+            <tbody id="kamiBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head-row">
+          <h3>订单记录</h3>
+          <button class="btn ghost small" id="refreshOrders" type="button">刷新</button>
+        </div>
+        <div class="pay-table-wrap">
+          <table class="pay-table">
+            <thead>
+              <tr>
+                <th>订单号</th>
+                <th>类型</th>
+                <th>金额</th>
+                <th>状态</th>
+                <th>卡密</th>
+                <th>时间</th>
+              </tr>
+            </thead>
+            <tbody id="orderBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <section class="view" id="view-security" hidden>
       <header class="view-head">
         <h2>安全与账号</h2>
@@ -896,11 +1057,12 @@
 
 <div id="modalRoot"></div>
 
-<script src="/assets/icons.js?v=15"></script>
+<script src="/assets/icons.js?v=16"></script>
 <script>window.__APP_VERSION__ = '1.2.0';</script>
-<script src="/assets/cropper.min.js?v=15"></script>
-<script src="/assets/cover.js?v=15"></script>
-<script src="/assets/posts-admin.js?v=15"></script>
-<script src="/assets/backstage.js?v=15"></script>
+<script src="/assets/cropper.min.js?v=16"></script>
+<script src="/assets/cover.js?v=16"></script>
+<script src="/assets/posts-admin.js?v=16"></script>
+<script src="/assets/pay-admin.js?v=16"></script>
+<script src="/assets/backstage.js?v=16"></script>
 </body>
 </html>
