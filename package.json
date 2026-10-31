@@ -1,6 +1,6 @@
 {
     "name":  "personal-website",
-    "version":  "1.6.0",
+    "version":  "1.7.0",
     "description":  "零依赖的个人官网系统，自带后台管理、音乐播放器、社交链接和 GitHub 展示",
     "type":  "module",
     "license":  "MIT",

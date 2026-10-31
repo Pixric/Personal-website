@@ -397,7 +397,7 @@ const EDITABLE = [
   'pay_enabled', 'pay_api_url', 'pay_pid', 'pay_key', 'pay_notify_url', 'pay_return_url',
   'pay_entry_donate', 'pay_entry_page', 'pay_entry_post',
   'donate_title', 'donate_desc', 'donate_presets', 'kami_title', 'kami_desc',
-  'pay_announce', 'pay_bind_verified',
+  'pay_announce', 'pay_bind_verified', 'pay_ask_phone',
   'pay_notify_secret',
 ];
 
@@ -405,7 +405,7 @@ const BOOL_KEYS = [
   'music_enabled', 'github_show_repos', 'github_show_chart', 'bg_api_enabled',
   'anim_intro', 'anim_bg', 'anim_reveal', 'anim_avatar', 'anim_player', 'tg_enabled', 'dark_mode',
   'posts_enabled', 'pay_enabled', 'pay_entry_donate', 'pay_entry_page', 'pay_entry_post',
-  'pay_announce_on', 'faka_show_home', 'pay_bind_verified',
+  'pay_announce_on', 'faka_show_home', 'pay_bind_verified', 'pay_ask_phone',
 ];
 
 function adminState() {
@@ -863,6 +863,7 @@ async function api(req, res, pathname, method) {
         subject,
         paytype,
         goods_id: goodsId,
+        phone: String(body.phone || '').replace(/\D/g, '').slice(0, 11),
         pay_url: created.payUrl,
       });
 
@@ -877,6 +878,46 @@ async function api(req, res, pathname, method) {
       console.error('[pay-create]', err && err.message);
       return sendJson(res, { ok: false, error: err.message || '下单失败' }, 502);
     }
+  }
+
+  if (pathname === '/api/pay/order-query' && method === 'POST') {
+    const c = pay.payConfig();
+    if (!c.enabled) return sendJson(res, { ok: false, error: '交易功能未开启' }, 403);
+
+    const body = await readJson(req);
+    const keyword = String(body.keyword || '').trim();
+    if (!keyword) return sendJson(res, { ok: false, error: '请输入订单号或手机号' }, 400);
+    if (keyword.length < 4) return sendJson(res, { ok: false, error: '查询内容太短' }, 400);
+
+    const isPhone = /^1[3-9]\d{9}$/.test(keyword);
+    let list = [];
+
+    if (isPhone) {
+      list = pay.findOrdersByPhone(keyword);
+    } else {
+      const one = pay.findOrderByOutTradeNo(keyword);
+      if (one) list = [one];
+    }
+
+    if (!list.length) {
+      return sendJson(res, { ok: true, found: false, orders: [] });
+    }
+
+    return sendJson(res, {
+      ok: true,
+      found: true,
+      orders: list.slice(0, 20).map((o) => ({
+        out_trade_no: o.out_trade_no,
+        kind: o.kind,
+        amount: o.amount,
+        subject: o.subject || '',
+        status: o.status,
+        paid: o.status === 'TRADE_SUCCESS',
+        kami: o.status === 'TRADE_SUCCESS' ? (o.kami || '') : '',
+        created_at: o.created_at,
+        paid_at: o.paid_at || 0,
+      })),
+    });
   }
 
   const payStatusMatch = /^\/api\/pay\/status\/([A-Za-z0-9]+)$/.exec(pathname);
@@ -1264,6 +1305,7 @@ async function api(req, res, pathname, method) {
           kami_title: c.kamiTitle,
           kami_desc: c.kamiDesc,
           faka_show_home: c.fakaShowHome,
+          ask_phone: c.askPhone,
           announce_on: c.announceOn,
           announce_text: c.announce,
           site_url: store.getSettings().site_url || '',
@@ -1301,9 +1343,40 @@ async function api(req, res, pathname, method) {
       try {
         const sample = { pid: c.pid, timestamp: String(Math.floor(Date.now() / 1000)), sign_type: 'MD5' };
         const sign = pay.buildSign(sample, c.key, 'MD5');
+        const steps = [];
+
+        steps.push({ name: '配置完整性', ok: true, detail: '接口地址、商户号、密钥均已填写' });
+        steps.push({ name: '签名生成', ok: !!sign, detail: sign ? 'MD5 ' + sign.slice(0, 12) + '…' : '生成失败' });
+
+        try {
+          const probe = await fetch(c.apiUrl + '/openapi/merchant/balance_query', {
+            method: 'POST',
+            headers: { 'content-type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(Object.assign({}, sample, { sign })).toString(),
+            signal: AbortSignal.timeout(12000),
+          });
+          const text = await probe.text();
+          let data = null;
+          try { data = JSON.parse(text); } catch {}
+
+          if (data && Number(data.code) === 1) {
+            steps.push({ name: '平台验签', ok: true, detail: '商户号与密钥有效' });
+          } else if (data && data.msg) {
+            steps.push({ name: '平台验签', ok: false, detail: data.msg });
+          } else {
+            steps.push({ name: '平台验签', ok: false, detail: '返回格式异常' });
+          }
+        } catch (e) {
+          steps.push({ name: '平台连接', ok: false, detail: '无法连接: ' + (e && e.message ? e.message : '网络错误') });
+        }
+
+        const verifyOk = steps.every((x) => x.ok);
+
         return sendJson(res, {
           ok: true,
-          message: '配置格式正确，签名已生成',
+          verify_ok: verifyOk,
+          message: verifyOk ? '全部检查通过，支付可以使用' : '部分检查未通过',
+          steps: steps,
           sample_sign: sign,
           api_url: c.apiUrl,
           notify_url: c.notifyUrl || '(未填写)',

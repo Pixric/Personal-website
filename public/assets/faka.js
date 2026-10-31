@@ -67,6 +67,7 @@
     document.head.appendChild(style);
   }
 
+  var payCfg = {};
   var allGoods = [];
   var allCats = [];
   var curCat = 0;
@@ -89,10 +90,11 @@
     document.title = $('fakaTitle').textContent;
   }
 
-  function renderAnnounce(payCfg) {
-    if (!payCfg || !payCfg.announce) return;
+  function renderAnnounce(cfg) {
+    payCfg = cfg || {};
+    if (!cfg || !cfg.announce) return;
     $('announceCard').hidden = false;
-    $('announceBody').textContent = payCfg.announce;
+    $('announceBody').textContent = cfg.announce;
   }
 
   function renderFilter() {
@@ -175,6 +177,12 @@
         '<span>单价</span>' +
         '<span class="buy-goods-price">¥' + esc(g.price) + '</span>' +
       '</div>';
+
+    var phoneWrap = $('buyPhoneWrap');
+    if (phoneWrap) {
+      phoneWrap.hidden = !payCfg.askPhone;
+      if (payCfg.askPhone) $('buyPhone').value = '';
+    }
 
     $('buyTip').textContent = '';
     $('buySubmit').textContent = '支付 ¥' + g.price;
@@ -280,6 +288,14 @@
     var typeEl = document.querySelector('.pay-type.active');
     var paytype = typeEl ? typeEl.getAttribute('data-type') : 'alipay';
 
+    if (payCfg.askPhone) {
+      var ph = $('buyPhone') ? $('buyPhone').value.trim() : '';
+      if (!/^1[3-9]\d{9}$/.test(ph)) {
+        tip.textContent = '请填写正确的手机号';
+        return;
+      }
+    }
+
     btn.disabled = true;
     tip.textContent = '正在创建订单…';
 
@@ -287,7 +303,12 @@
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       credentials: 'same-origin',
-      body: JSON.stringify({ kind: 'kami', goods_id: curGoods.id, paytype: paytype }),
+      body: JSON.stringify({
+        kind: 'kami',
+        goods_id: curGoods.id,
+        paytype: paytype,
+        phone: payCfg.askPhone && $('buyPhone') ? $('buyPhone').value.trim() : '',
+      }),
     })
       .then(function (r) {
         return r.text().then(function (text) {
@@ -328,6 +349,169 @@
     $('resultMask').hidden = true;
     sessionStorage.removeItem('pw_pay_order');
   });
+
+  function showCaptcha(onPass) {
+    var mask = document.createElement('div');
+    mask.className = 'cap-mask';
+    mask.innerHTML =
+      '<div class="cap-box">' +
+        '<div class="cap-title">安全验证</div>' +
+        '<div class="cap-sub">请按住滑块，拖动到最右侧</div>' +
+        '<div class="cap-track" id="capTrack">' +
+          '<div class="cap-fill" id="capFill"></div>' +
+          '<span class="cap-label" id="capLabel">按住滑块拖动</span>' +
+          '<div class="cap-thumb" id="capThumb">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>' +
+          '</div>' +
+        '</div>' +
+        '<button class="cap-cancel" id="capCancel" type="button">取消</button>' +
+      '</div>';
+    document.body.appendChild(mask);
+
+    var st = { drag: false, startX: 0, moved: 0, max: 0 };
+    var thumb = document.getElementById('capThumb');
+    var fill = document.getElementById('capFill');
+    var label = document.getElementById('capLabel');
+
+    function maxX() {
+      var t = document.getElementById('capTrack');
+      return t.clientWidth - thumb.offsetWidth - 4;
+    }
+
+    function move(cx) {
+      if (!st.drag) return;
+      var v = Math.max(0, Math.min(st.max, cx - st.startX));
+      st.moved = v;
+      thumb.style.transform = 'translateX(' + v + 'px)';
+      fill.style.width = (v + 40) + 'px';
+      label.style.opacity = String(Math.max(0, 1 - v / 40));
+    }
+
+    function end() {
+      if (!st.drag) return;
+      st.drag = false;
+      if (st.moved >= st.max - 4) {
+        thumb.classList.add('done');
+        thumb.style.transform = 'translateX(' + st.max + 'px)';
+        fill.style.width = '100%';
+        label.textContent = '验证通过';
+        label.style.opacity = '1';
+        setTimeout(function () {
+          mask.remove();
+          if (onPass) onPass();
+        }, 380);
+      } else {
+        st.moved = 0;
+        thumb.style.transform = '';
+        fill.style.width = '0';
+        label.style.opacity = '1';
+      }
+    }
+
+    thumb.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      st.drag = true;
+      st.startX = e.clientX - st.moved;
+      st.max = maxX();
+    });
+    document.addEventListener('mousemove', function (e) { if (st.drag) move(e.clientX); });
+    document.addEventListener('mouseup', function () { if (st.drag) end(); });
+
+    thumb.addEventListener('touchstart', function (e) {
+      st.drag = true;
+      st.startX = e.touches[0].clientX - st.moved;
+      st.max = maxX();
+    }, { passive: true });
+    document.addEventListener('touchmove', function (e) {
+      if (!st.drag) return;
+      move(e.touches[0].clientX);
+      e.preventDefault();
+    }, { passive: false });
+    document.addEventListener('touchend', function () { if (st.drag) end(); });
+
+    document.getElementById('capCancel').addEventListener('click', function () { mask.remove(); });
+  }
+
+  function statusLabel(s) {
+    var map = {
+      WAIT_BUYER_PAY: '待支付',
+      TRADE_SUCCESS: '已支付',
+      TRADE_CLOSED: '已关闭',
+      TRADE_REFUND: '已退款',
+    };
+    return map[s] || s || '未知';
+  }
+
+  function renderOrderList(orders) {
+    var box = $('queryResult');
+    if (!orders.length) {
+      box.innerHTML = '<div class="qr-empty">没有查到相关订单</div>';
+      return;
+    }
+
+    box.innerHTML = '';
+    orders.forEach(function (o) {
+      var ok = o.paid;
+      var el = document.createElement('div');
+      el.className = 'qr-item';
+      el.innerHTML =
+        '<div class="qr-row">' +
+          '<span class="qr-no">' + esc(o.out_trade_no) + '</span>' +
+          '<span class="qr-status ' + (ok ? 'ok' : '') + '">' + statusLabel(o.status) + '</span>' +
+        '</div>' +
+        '<div class="qr-meta">' + esc(o.subject || o.kind) + ' · ¥' + esc(o.amount) + '</div>' +
+        (ok && o.kami
+          ? '<div class="qr-kami"><span>卡密</span><code>' + esc(o.kami) + '</code></div>'
+          : '');
+      box.appendChild(el);
+    });
+  }
+
+  function doQuery() {
+    var box = $('queryResult');
+    var input = $('queryInput');
+    var kw = String(input.value || '').trim();
+
+    if (!kw) {
+      box.innerHTML = '<div class="qr-empty">请输入订单号或手机号</div>';
+      return;
+    }
+
+    box.innerHTML = '<div class="qr-loading">查询中…</div>';
+
+    fetch('/api/pay/order-query', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ keyword: kw }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.ok) throw new Error(d.error || '查询失败');
+        renderOrderList(d.orders || []);
+      })
+      .catch(function (e) {
+        box.innerHTML = '<div class="qr-empty">' + esc(e.message) + '</div>';
+      });
+  }
+
+  if ($('queryBtn')) {
+    $('queryBtn').addEventListener('click', function () {
+      var kw = String($('queryInput').value || '').trim();
+      if (!kw) {
+        $('queryResult').innerHTML = '<div class="qr-empty">请输入订单号或手机号</div>';
+        return;
+      }
+      showCaptcha(doQuery);
+    });
+
+    $('queryInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        var kw = String(this.value || '').trim();
+        if (kw) showCaptcha(doQuery);
+      }
+    });
+  }
 
   var pendingOrder = sessionStorage.getItem('pw_pay_order');
   if (pendingOrder) {

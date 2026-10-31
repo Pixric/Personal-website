@@ -80,6 +80,7 @@
     if ($('payEntryDonate')) $('payEntryDonate').checked = !!p.entry_donate;
     if ($('payEntryPage')) $('payEntryPage').checked = !!p.entry_page;
     if ($('fakaShowHome')) $('fakaShowHome').checked = !!p.faka_show_home;
+    if ($('askPhone')) $('askPhone').checked = !!p.ask_phone;
     if ($('announceOn')) $('announceOn').checked = !!p.announce_on;
     if ($('announceText')) $('announceText').value = p.announce_text || '';
     if ($('donateTitle')) $('donateTitle').value = p.donate_title || '';
@@ -101,6 +102,19 @@
     cache.orders = d.orders || [];
     renderKami();
     renderOrders();
+
+    var configured = !!(p.api_url && p.pid && p.key_set);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-pay-panel]'), function (el) {
+      el.hidden = !configured;
+    });
+
+    var guide = document.querySelector('.bind-guide');
+    if (guide) guide.hidden = configured;
+
+    if (!configured) {
+      var sw = $('paySwitchPanel');
+      if (sw) sw.hidden = false;
+    }
   }
 
   function renderKami() {
@@ -250,6 +264,79 @@
     });
   }
 
+  function runVerify(done) {
+    var mask = document.createElement('div');
+    mask.className = 'modal-mask';
+    mask.innerHTML =
+      '<div class="modal verify-modal" role="dialog">' +
+        '<div class="verify-head">' +
+          '<div class="verify-spin" id="vfSpin"></div>' +
+          '<div class="verify-title" id="vfTitle">正在校验支付配置</div>' +
+          '<div class="verify-sub" id="vfSub">请稍候，正在连接支付平台…</div>' +
+        '</div>' +
+        '<div class="verify-steps" id="vfSteps"></div>' +
+        '<div class="verify-foot" id="vfFoot" hidden>' +
+          '<button class="btn primary" id="vfClose" type="button">完成</button>' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById('modalRoot').appendChild(mask);
+
+    function addStep(name, state, detail) {
+      var box = document.getElementById('vfSteps');
+      var el = document.createElement('div');
+      el.className = 'vf-step ' + state;
+      var icon = state === 'ok'
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>'
+        : state === 'fail'
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+          : '<div class="vf-dot"></div>';
+      el.innerHTML = '<span class="vf-icon">' + icon + '</span>' +
+        '<span class="vf-name">' + name + '</span>' +
+        '<span class="vf-detail">' + (detail || '') + '</span>';
+      box.appendChild(el);
+    }
+
+    document.getElementById('vfClose').addEventListener('click', function () {
+      mask.remove();
+      if (done) done();
+    });
+
+    addStep('检查配置完整性', 'loading', '');
+
+    api('/admin/pay/test').then(function (d) {
+      var steps = d.steps || [];
+      var box = document.getElementById('vfSteps');
+      box.innerHTML = '';
+
+      var allOk = true;
+      steps.forEach(function (s) {
+        addStep(s.name, s.ok ? 'ok' : 'fail', s.detail);
+        if (!s.ok) allOk = false;
+      });
+
+      document.getElementById('vfSpin').className = allOk ? 'verify-spin ok' : 'verify-spin fail';
+      document.getElementById('vfSpin').innerHTML = allOk
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      document.getElementById('vfTitle').textContent = allOk ? '配置校验通过' : '配置校验未通过';
+      document.getElementById('vfSub').textContent = allOk
+        ? '支付功能已就绪，可以开始营业了'
+        : '请根据下方提示修正后重新校验';
+      document.getElementById('vfFoot').hidden = false;
+
+      toast(d.message, allOk ? 'success' : 'error');
+      loadPay();
+    }).catch(function (e) {
+      addStep('校验请求', 'fail', e.message);
+      document.getElementById('vfSpin').className = 'verify-spin fail';
+      document.getElementById('vfTitle').textContent = '校验失败';
+      document.getElementById('vfSub').textContent = e.message;
+      document.getElementById('vfFoot').hidden = false;
+      if (done) done();
+    });
+  }
+
   function loadPay() {
     return api('/admin/pay/state').then(fillForm).catch(function (e) {
       toast(e.message, 'error');
@@ -290,15 +377,8 @@
     if ($('testPay')) {
       $('testPay').addEventListener('click', function () {
         var btn = $('testPay');
-        var el = $('payMsg');
         btn.disabled = true;
-        msg(el, '检测中…');
-        api('/admin/pay/test')
-          .then(function (d) {
-            msg(el, d.message + '（签名 ' + d.sample_sign.slice(0, 8) + '…）', 'success');
-          })
-          .catch(function (e) { msg(el, e.message, 'error'); })
-          .finally(function () { btn.disabled = false; });
+        runVerify(function () { btn.disabled = false; });
       });
     }
 
@@ -313,6 +393,7 @@
             pay_entry_donate: $('payEntryDonate').checked,
             pay_entry_page: $('payEntryPage').checked,
             faka_show_home: $('fakaShowHome') ? $('fakaShowHome').checked : true,
+            pay_ask_phone: $('askPhone') ? $('askPhone').checked : false,
             donate_title: $('donateTitle').value.trim(),
             donate_desc: $('donateDesc').value.trim(),
             donate_presets: $('donatePresets').value.trim(),

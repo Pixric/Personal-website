@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="description" id="metaDesc" content="" />
 <title>卡网</title>
-<link rel="stylesheet" href="/assets/style.css?v=19" />
-<link rel="stylesheet" href="/assets/faka.css?v=19" />
+<link rel="stylesheet" href="/assets/style.css?v=20" />
+<link rel="stylesheet" href="/assets/faka.css?v=20" />
 </head>
 <body>
 
@@ -40,6 +40,18 @@
 
   <div class="faka-filter" id="fakaFilter"></div>
 
+  <div class="query-card card">
+    <div class="query-head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <span>订单查询</span>
+    </div>
+    <div class="query-row">
+      <input type="text" id="queryInput" placeholder="输入订单号或手机号" spellcheck="false" />
+      <button class="query-btn" id="queryBtn" type="button">查询</button>
+    </div>
+    <div class="query-result" id="queryResult"></div>
+  </div>
+
   <div class="goods-grid" id="goodsGrid"></div>
 
   <div class="faka-empty card" id="fakaEmpty" hidden>
@@ -62,6 +74,11 @@
 
     <div class="pay-body">
       <div class="buy-goods" id="buyGoods"></div>
+      <label class="field buy-phone" id="buyPhoneWrap" hidden>
+        <span class="field-label">手机号（用于查询订单）</span>
+        <input type="tel" id="buyPhone" placeholder="请输入手机号" maxlength="11" inputmode="numeric" />
+      </label>
+
       <div class="pay-types" id="payTypes">
         <label class="pay-type active" data-type="alipay">
           <input type="radio" name="paytype" value="alipay" checked hidden />
@@ -96,6 +113,6 @@
   </div>
 </div>
 
-<script src="/assets/faka.js?v=19"></script>
+<script src="/assets/faka.js?v=20"></script>
 </body>
 </html>

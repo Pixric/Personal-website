@@ -63,6 +63,7 @@ export function payConfig() {
     announceOn: s.pay_announce_on === '1',
     fakaShowHome: s.faka_show_home === '1',
     bindVerified: s.pay_bind_verified === '1',
+    askPhone: s.pay_ask_phone === '1',
   };
 }
 
@@ -80,6 +81,7 @@ export function publicPayConfig() {
     kamiDesc: c.kamiDesc,
     announce: c.announceOn ? c.announce : '',
     fakaShowHome: c.fakaShowHome,
+    askPhone: c.askPhone,
   };
 }
 
@@ -158,6 +160,14 @@ export function createOrder(data) {
 
 export function findOrderByOutTradeNo(no) {
   return (store.load().payOrders || []).find((o) => o.out_trade_no === no) || null;
+}
+
+export function findOrdersByPhone(phone) {
+  const ph = String(phone || '').trim();
+  if (!ph) return [];
+  return (store.load().payOrders || [])
+    .filter((o) => String(o.phone || '') === ph)
+    .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
 }
 
 export function findOrderByTradeNo(no) {

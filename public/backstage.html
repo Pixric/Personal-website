@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex, nofollow" />
 <title>后台管理</title>
-<link rel="stylesheet" href="/assets/backstage.css?v=19" />
-<link rel="stylesheet" href="/assets/cropper.min.css?v=19" />
-<link rel="stylesheet" href="/assets/cover.css?v=19" />
-<link rel="stylesheet" href="/assets/posts-admin.css?v=19" />
+<link rel="stylesheet" href="/assets/backstage.css?v=20" />
+<link rel="stylesheet" href="/assets/cropper.min.css?v=20" />
+<link rel="stylesheet" href="/assets/cover.css?v=20" />
+<link rel="stylesheet" href="/assets/posts-admin.css?v=20" />
 </head>
 <body>
 
@@ -925,7 +925,7 @@
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel" data-pay-panel="paySwitchPanel" id="paySwitchPanel">
         <h3>总开关</h3>
         <label class="switch-row">
           <span><b>启用交易功能</b><em>关闭后所有支付入口都会隐藏</em></span>
@@ -968,7 +968,7 @@
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel" data-pay-panel="payEntryPanel" id="payEntryPanel">
         <h3>前台入口</h3>
         <div class="switch-list">
           <label class="switch-row">
@@ -982,6 +982,10 @@
           <label class="switch-row">
             <span><b>主页显示卡网入口</b><em>主页显示「卡网」按钮，跳转到商品列表</em></span>
             <input type="checkbox" id="fakaShowHome" />
+          </label>
+          <label class="switch-row">
+            <span><b>购买时必填手机号</b><em>买家下单需填手机号，之后可凭手机号查询订单</em></span>
+            <input type="checkbox" id="askPhone" />
           </label>
         </div>
         <div class="grid-2" style="margin-top:14px">
@@ -1014,7 +1018,7 @@
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel" data-pay-panel="payAnnouncePanel" id="payAnnouncePanel">
         <h3>卡网公告</h3>
         <label class="switch-row">
           <span><b>显示公告</b><em>在卡网页面顶部展示公告内容</em></span>
@@ -1030,7 +1034,7 @@
         </div>
       </div>
 
-      <div class="panel panel-danger">
+      <div class="panel panel-danger" data-pay-panel="payResetPanel" id="payResetPanel">
         <h3>重置所有</h3>
         <div class="reset-list">
           <b>将彻底清除以下内容：</b>
@@ -1301,13 +1305,13 @@
 
 <div id="modalRoot"></div>
 
-<script src="/assets/icons.js?v=19"></script>
+<script src="/assets/icons.js?v=20"></script>
 <script>window.__APP_VERSION__ = '1.2.0';</script>
-<script src="/assets/cropper.min.js?v=19"></script>
-<script src="/assets/cover.js?v=19"></script>
-<script src="/assets/posts-admin.js?v=19"></script>
-<script src="/assets/pay-admin.js?v=19"></script>
-<script src="/assets/goods-admin.js?v=19"></script>
-<script src="/assets/backstage.js?v=19"></script>
+<script src="/assets/cropper.min.js?v=20"></script>
+<script src="/assets/cover.js?v=20"></script>
+<script src="/assets/posts-admin.js?v=20"></script>
+<script src="/assets/pay-admin.js?v=20"></script>
+<script src="/assets/goods-admin.js?v=20"></script>
+<script src="/assets/backstage.js?v=20"></script>
 </body>
 </html>
