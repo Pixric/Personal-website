@@ -444,6 +444,9 @@
       if (window.GRWZ && window.GRWZ.initPay && !window.__payInited) {
         window.GRWZ.initPay();
       }
+      if (window.GRWZ && window.GRWZ.initGoods && !window.__goodsInited) {
+        window.GRWZ.initGoods();
+      }
     }).catch(function (e) {
       if (e.status === 401) { showLogin(); return; }
       toast(e.message, 'error', '加载失败');
@@ -465,6 +468,8 @@
       if (view === 'pay-overview' && window.GRWZ && window.GRWZ.loadOverview) window.GRWZ.loadOverview();
       if ((view === 'pay-kami' || view === 'pay-orders' || view === 'pay-config') &&
           window.GRWZ && window.GRWZ.loadPay) window.GRWZ.loadPay();
+      if ((view === 'pay-goods' || view === 'pay-kami') &&
+          window.GRWZ && window.GRWZ.loadGoods) window.GRWZ.loadGoods();
     });
   });
 

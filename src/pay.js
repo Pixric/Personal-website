@@ -171,20 +171,32 @@ export function updateOrder(id, patch) {
   return o;
 }
 
-export function addKamiStock(count, price, batch, note) {
+export function addKamiStock(count, price, batch, note, goodsId, codes) {
   const s = store.load();
-  const n = Math.max(1, Math.min(1000, parseInt(count, 10) || 1));
-  const amount = fmtAmount(price) || '0.00';
   if (!Array.isArray(s.kamiStock)) s.kamiStock = [];
+
+  const gid = Number(goodsId) || 0;
+  let list = [];
+
+  if (Array.isArray(codes) && codes.length) {
+    list = codes.map((c) => String(c || '').trim()).filter(Boolean).slice(0, 50000);
+  } else {
+    const n = Math.max(1, Math.min(50000, parseInt(count, 10) || 1));
+    for (let i = 0; i < n; i++) list.push(genKami(16));
+  }
+
+  const amount = fmtAmount(price) || '0.00';
   const made = [];
-  for (let i = 0; i < n; i++) {
+
+  for (const code of list) {
     s.seq.kamiStock = (s.seq.kamiStock || 0) + 1;
     const row = {
       id: s.seq.kamiStock,
-      code: genKami(16),
+      code: code.slice(0, 200),
       price: amount,
       batch: String(batch || '').slice(0, 60),
       note: String(note || '').slice(0, 200),
+      goods_id: gid,
       status: 'available',
       issued_to: '',
       created_at: Date.now(),
@@ -193,6 +205,7 @@ export function addKamiStock(count, price, batch, note) {
     s.kamiStock.push(row);
     made.push(row);
   }
+
   store.save();
   return made;
 }
@@ -206,12 +219,16 @@ export function removeKami(id) {
   return true;
 }
 
-export function listKami() {
-  return (store.load().kamiStock || []).slice().sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+export function listKami(goodsId) {
+  const list = (store.load().kamiStock || []).slice();
+  const filtered = goodsId
+    ? list.filter((k) => Number(k.goods_id) === Number(goodsId))
+    : list;
+  return filtered.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
 }
 
-export function kamiStats() {
-  const list = listKami();
+export function kamiStats(goodsId) {
+  const list = listKami(goodsId);
   const available = list.filter((k) => k.status === 'available');
   const used = list.filter((k) => k.status === 'used');
   return {
@@ -222,10 +239,13 @@ export function kamiStats() {
   };
 }
 
-export function allocateKami(orderId) {
+export function allocateKami(orderId, goodsId) {
   const s = store.load();
   if (!Array.isArray(s.kamiStock)) s.kamiStock = [];
-  const free = s.kamiStock.find((k) => k.status === 'available');
+  const gid = Number(goodsId) || 0;
+  const free = s.kamiStock.find((k) =>
+    k.status === 'available' && (gid ? Number(k.goods_id) === gid : true)
+  );
   if (!free) return null;
   free.status = 'used';
   free.issued_to = String(orderId);
@@ -237,6 +257,157 @@ export function allocateKami(orderId) {
 export function findKamiByCode(code) {
   const c = String(code || '').trim().toUpperCase();
   return (store.load().kamiStock || []).find((k) => k.code === c) || null;
+}
+
+export function allCategories() {
+  return (store.load().goodsCategories || []).slice()
+    .sort((a, b) => (a.sort || 0) - (b.sort || 0) || (a.id - b.id));
+}
+
+export function findCategory(id) {
+  return (store.load().goodsCategories || []).find((c) => c.id === Number(id)) || null;
+}
+
+export function createCategory(data) {
+  const s = store.load();
+  if (!Array.isArray(s.goodsCategories)) s.goodsCategories = [];
+  s.seq.goodsCategories = (s.seq.goodsCategories || 0) + 1;
+  const row = {
+    id: s.seq.goodsCategories,
+    name: String(data.name || '').slice(0, 60),
+    enabled: data.enabled === '0' ? '0' : '1',
+    sort: Number(data.sort) || 0,
+    created_at: Date.now(),
+  };
+  s.goodsCategories.push(row);
+  store.save();
+  return row;
+}
+
+export function updateCategory(id, patch) {
+  const s = store.load();
+  const c = (s.goodsCategories || []).find((x) => x.id === Number(id));
+  if (!c) return null;
+  if ('name' in patch) c.name = String(patch.name || '').slice(0, 60);
+  if ('enabled' in patch) c.enabled = patch.enabled === '0' ? '0' : '1';
+  if ('sort' in patch) c.sort = Number(patch.sort) || 0;
+  store.save();
+  return c;
+}
+
+export function deleteCategory(id) {
+  const s = store.load();
+  const before = (s.goodsCategories || []).length;
+  s.goodsCategories = (s.goodsCategories || []).filter((c) => c.id !== Number(id));
+  if (s.goodsCategories.length === before) return false;
+  for (const g of (s.goods || [])) {
+    if (Number(g.category_id) === Number(id)) g.category_id = 0;
+  }
+  store.save();
+  return true;
+}
+
+export function allGoods() {
+  return (store.load().goods || []).slice()
+    .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+}
+
+export function findGoods(id) {
+  return (store.load().goods || []).find((g) => g.id === Number(id)) || null;
+}
+
+export function createGoods(data) {
+  const s = store.load();
+  if (!Array.isArray(s.goods)) s.goods = [];
+  s.seq.goods = (s.seq.goods || 0) + 1;
+  const row = {
+    id: s.seq.goods,
+    title: String(data.title || '').slice(0, 120),
+    category_id: Number(data.category_id) || 0,
+    price: fmtAmount(data.price) || '0.00',
+    cover_key: String(data.cover_key || ''),
+    desc: String(data.desc || '').slice(0, 2000),
+    kind: 'kami',
+    enabled: data.enabled === '0' ? '0' : '1',
+    sales: 0,
+    sort: Number(data.sort) || 0,
+    created_at: Date.now(),
+  };
+  s.goods.push(row);
+  store.save();
+  return row;
+}
+
+export function updateGoods(id, patch) {
+  const s = store.load();
+  const g = (s.goods || []).find((x) => x.id === Number(id));
+  if (!g) return null;
+  if ('title' in patch) g.title = String(patch.title || '').slice(0, 120);
+  if ('category_id' in patch) g.category_id = Number(patch.category_id) || 0;
+  if ('price' in patch) g.price = fmtAmount(patch.price) || g.price;
+  if ('cover_key' in patch) g.cover_key = String(patch.cover_key || '');
+  if ('desc' in patch) g.desc = String(patch.desc || '').slice(0, 2000);
+  if ('enabled' in patch) g.enabled = patch.enabled === '0' ? '0' : '1';
+  if ('sort' in patch) g.sort = Number(patch.sort) || 0;
+  store.save();
+  return g;
+}
+
+export function deleteGoods(id) {
+  const s = store.load();
+  const before = (s.goods || []).length;
+  s.goods = (s.goods || []).filter((g) => g.id !== Number(id));
+  if (s.goods.length === before) return false;
+  s.kamiStock = (s.kamiStock || []).filter((k) => Number(k.goods_id) !== Number(id));
+  store.save();
+  return true;
+}
+
+export function bumpSales(goodsId) {
+  const s = store.load();
+  const g = (s.goods || []).find((x) => x.id === Number(goodsId));
+  if (!g) return;
+  g.sales = (Number(g.sales) || 0) + 1;
+  store.save();
+}
+
+export function goodsWithStock() {
+  const cats = allCategories();
+  const catMap = {};
+  for (const c of cats) catMap[c.id] = c.name;
+
+  return allGoods().map((g) => {
+    const st = kamiStats(g.id);
+    return Object.assign({}, g, {
+      category_name: catMap[g.category_id] || '未分类',
+      stock: st.available,
+      sold: st.used,
+      kami_total: st.total,
+    });
+  });
+}
+
+export function publicGoodsList() {
+  const cats = allCategories().filter((c) => c.enabled !== '0');
+  const catMap = {};
+  for (const c of cats) catMap[c.id] = c.name;
+
+  return allGoods()
+    .filter((g) => g.enabled !== '0')
+    .map((g) => {
+      const st = kamiStats(g.id);
+      return {
+        id: g.id,
+        title: g.title,
+        price: g.price,
+        desc: g.desc,
+        cover_url: g.cover_key ? '/uploads/' + g.cover_key : '',
+        category_name: catMap[g.category_id] || '未分类',
+        stock: st.available,
+        sales: Number(g.sales) || 0,
+      };
+    })
+    .filter((g) => g.stock > 0);
 }
 
 export async function createPayment(opts) {
@@ -289,12 +460,17 @@ export function markPaid(order, notifyParams) {
 
   let kami = order.kami || '';
   if (order.kind === 'kami' && !kami) {
-    const got = allocateKami(order.id);
+    const got = allocateKami(order.id, order.goods_id);
     if (got) kami = got.code;
   }
   if (kami) patch.kami = kami;
 
   const updated = updateOrder(order.id, patch);
+
+  if (order.kind === 'kami' && order.goods_id) {
+    bumpSales(order.goods_id);
+  }
+
   return { already: false, order: updated, kami };
 }
 

@@ -81,9 +81,11 @@ function emptyState() {
     posts: [],
     postLikes: {},
     payOrders: [],
+    goodsCategories: [],
+    goods: [],
     kamiStock: [],
     kamiIssued: [],
-    seq: { admins: 0, tracks: 0, socials: 0, posts: 0, payOrders: 0, kamiStock: 0 },
+    seq: { admins: 0, tracks: 0, socials: 0, posts: 0, payOrders: 0, kamiStock: 0, goods: 0, goodsCategories: 0 },
   };
 }
 
@@ -111,6 +113,8 @@ export function load() {
         posts: Array.isArray(raw.posts) ? raw.posts : [],
         postLikes: raw.postLikes || {},
         payOrders: Array.isArray(raw.payOrders) ? raw.payOrders : [],
+        goodsCategories: Array.isArray(raw.goodsCategories) ? raw.goodsCategories : [],
+        goods: Array.isArray(raw.goods) ? raw.goods : [],
         kamiStock: Array.isArray(raw.kamiStock) ? raw.kamiStock : [],
         kamiIssued: Array.isArray(raw.kamiIssued) ? raw.kamiIssued : [],
       };

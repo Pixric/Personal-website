@@ -777,8 +777,22 @@ async function api(req, res, pathname, method) {
     return sendJson(res, { ok: true, pay: pay.publicPayConfig() });
   }
 
+  if (pathname === '/api/pay/goods' && method === 'GET') {
+    const c = pay.payConfig();
+    if (!c.enabled) return sendJson(res, { ok: true, enabled: false, goods: [], categories: [] });
+    return sendJson(res, {
+      ok: true,
+      enabled: true,
+      goods: pay.publicGoodsList(),
+      categories: pay.allCategories()
+        .filter((x) => x.enabled !== '0')
+        .map((x) => ({ id: x.id, name: x.name })),
+    });
+  }
+
   if (pathname === '/api/pay/kami/price' && method === 'GET') {
-    const stats = pay.kamiStats();
+    const gid = url.searchParams.get('goods_id');
+    const stats = pay.kamiStats(gid ? parseInt(gid, 10) : 0);
     return sendJson(res, {
       ok: true,
       available: stats.available,
@@ -796,13 +810,24 @@ async function api(req, res, pathname, method) {
 
     let amount = '';
     let subject = '';
+    let goodsId = 0;
 
     if (kind === 'kami') {
-      if (!c.entryPage) return sendJson(res, { ok: false, error: '卡密购买未开启' }, 403);
-      const stats = pay.kamiStats();
-      if (!stats.available) return sendJson(res, { ok: false, error: '卡密暂时缺货，请稍后再试' }, 409);
-      amount = stats.price;
-      subject = c.kamiTitle;
+      if (!c.entryPage) return sendJson(res, { ok: false, error: '商品购买未开启' }, 403);
+
+      goodsId = parseInt(body.goods_id, 10) || 0;
+      const g = pay.findGoods(goodsId);
+      if (!g || g.enabled === '0') {
+        return sendJson(res, { ok: false, error: '商品不存在或已下架' }, 404);
+      }
+
+      const stats = pay.kamiStats(g.id);
+      if (!stats.available) {
+        return sendJson(res, { ok: false, error: '该商品暂时缺货，请稍后再试' }, 409);
+      }
+
+      amount = g.price;
+      subject = g.title;
     } else {
       if (!c.entryDonate) return sendJson(res, { ok: false, error: '赞赏未开启' }, 403);
       amount = String(body.amount || '').trim();
@@ -835,6 +860,7 @@ async function api(req, res, pathname, method) {
         amount: created.amount,
         subject,
         paytype,
+        goods_id: goodsId,
         pay_url: created.payUrl,
       });
 
@@ -1069,6 +1095,123 @@ async function api(req, res, pathname, method) {
           file_icon_url: assetUrl(p.file_icon_key),
         })),
       });
+    }
+
+    if (rest === 'pay/goods' && method === 'GET') {
+      const cats = pay.allCategories();
+      const goods = pay.goodsWithStock();
+      const catCount = {};
+      for (const g of goods) catCount[g.category_id] = (catCount[g.category_id] || 0) + 1;
+      return sendJson(res, {
+        ok: true,
+        categories: cats.map((c) => Object.assign({}, c, { goods_count: catCount[c.id] || 0 })),
+        goods,
+      });
+    }
+
+    if (rest === 'pay/goods' && method === 'POST') {
+      const body = await readJson(req);
+      const title = String(body.title || '').trim();
+      if (!title) return sendJson(res, { ok: false, error: '请填写商品名称' }, 400);
+      const price = String(body.price || '').trim();
+      if (!/^\d+(\.\d{1,2})?$/.test(price)) {
+        return sendJson(res, { ok: false, error: '请填写正确的价格' }, 400);
+      }
+      const row = pay.createGoods({
+        title,
+        price,
+        category_id: body.category_id,
+        cover_key: body.cover_key,
+        desc: body.desc,
+        enabled: body.enabled === false ? '0' : '1',
+      });
+      return sendJson(res, { ok: true, goods: row });
+    }
+
+    if (rest.startsWith('pay/goods/') && method === 'PUT') {
+      const id = parseInt(rest.slice('pay/goods/'.length), 10);
+      if (!Number.isInteger(id)) return sendJson(res, { ok: false, error: 'ID 不合法' }, 400);
+      const body = await readJson(req);
+      const patch = {};
+      if ('title' in body) patch.title = body.title;
+      if ('category_id' in body) patch.category_id = body.category_id;
+      if ('price' in body) patch.price = body.price;
+      if ('cover_key' in body) patch.cover_key = body.cover_key;
+      if ('desc' in body) patch.desc = body.desc;
+      if ('enabled' in body) patch.enabled = body.enabled === false ? '0' : '1';
+      const row = pay.updateGoods(id, patch);
+      if (!row) return sendJson(res, { ok: false, error: '商品不存在' }, 404);
+      return sendJson(res, { ok: true, goods: row });
+    }
+
+    if (rest.startsWith('pay/goods/') && method === 'DELETE') {
+      const id = parseInt(rest.slice('pay/goods/'.length), 10);
+      if (!Number.isInteger(id)) return sendJson(res, { ok: false, error: 'ID 不合法' }, 400);
+      const ok = pay.deleteGoods(id);
+      if (!ok) return sendJson(res, { ok: false, error: '商品不存在' }, 404);
+      return sendJson(res, { ok: true });
+    }
+
+    if (rest === 'pay/categories' && method === 'POST') {
+      const body = await readJson(req);
+      const name = String(body.name || '').trim();
+      if (!name) return sendJson(res, { ok: false, error: '请填写分类名称' }, 400);
+      return sendJson(res, { ok: true, category: pay.createCategory({ name }) });
+    }
+
+    if (rest.startsWith('pay/categories/') && method === 'PUT') {
+      const id = parseInt(rest.slice('pay/categories/'.length), 10);
+      if (!Number.isInteger(id)) return sendJson(res, { ok: false, error: 'ID 不合法' }, 400);
+      const body = await readJson(req);
+      const patch = {};
+      if ('name' in body) patch.name = body.name;
+      if ('enabled' in body) patch.enabled = body.enabled === false ? '0' : '1';
+      const row = pay.updateCategory(id, patch);
+      if (!row) return sendJson(res, { ok: false, error: '分类不存在' }, 404);
+      return sendJson(res, { ok: true, category: row });
+    }
+
+    if (rest.startsWith('pay/categories/') && method === 'DELETE') {
+      const id = parseInt(rest.slice('pay/categories/'.length), 10);
+      if (!Number.isInteger(id)) return sendJson(res, { ok: false, error: 'ID 不合法' }, 400);
+      const ok = pay.deleteCategory(id);
+      if (!ok) return sendJson(res, { ok: false, error: '分类不存在' }, 404);
+      return sendJson(res, { ok: true });
+    }
+
+    if (rest === 'pay/kami/batch' && method === 'POST') {
+      const body = await readJson(req);
+      const goodsId = parseInt(body.goods_id, 10);
+      if (!Number.isInteger(goodsId) || !pay.findGoods(goodsId)) {
+        return sendJson(res, { ok: false, error: '请选择商品' }, 400);
+      }
+
+      const raw = String(body.text || '');
+      const lines = raw.split(/\r?\n/)
+        .map((x) => x.trim())
+        .filter((x) => x.length > 0);
+
+      let codes = lines;
+      if (body.dedupe) {
+        const seen = new Set();
+        codes = [];
+        for (const c of lines) {
+          if (seen.has(c)) continue;
+          seen.add(c);
+          codes.push(c);
+        }
+      }
+
+      if (!codes.length) {
+        return sendJson(res, { ok: false, error: '没有可导入的卡密内容' }, 400);
+      }
+      if (codes.length > 50000) {
+        return sendJson(res, { ok: false, error: '单次最多导入 50000 条' }, 400);
+      }
+
+      const made = pay.addKamiStock(codes.length, pay.findGoods(goodsId).price,
+        body.batch, '', goodsId, codes);
+      return sendJson(res, { ok: true, count: made.length });
     }
 
     if (rest === 'pay/overview' && method === 'GET') {
