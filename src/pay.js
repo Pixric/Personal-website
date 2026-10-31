@@ -59,6 +59,10 @@ export function payConfig() {
       .split(',').map((x) => x.trim()).filter((x) => /^\d+(\.\d{1,2})?$/.test(x)),
     kamiTitle: s.kami_title || '购买卡密',
     kamiDesc: s.kami_desc || '',
+    announce: s.pay_announce || '',
+    announceOn: s.pay_announce_on === '1',
+    fakaShowHome: s.faka_show_home === '1',
+    bindVerified: s.pay_bind_verified === '1',
   };
 }
 
@@ -74,6 +78,8 @@ export function publicPayConfig() {
     donatePresets: c.donatePresets,
     kamiTitle: c.kamiTitle,
     kamiDesc: c.kamiDesc,
+    announce: c.announceOn ? c.announce : '',
+    fakaShowHome: c.fakaShowHome,
   };
 }
 
@@ -309,7 +315,12 @@ export function deleteCategory(id) {
 
 export function allGoods() {
   return (store.load().goods || []).slice()
-    .sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+    .sort((a, b) => {
+      const sa = Number(a.sort) || 0;
+      const sb = Number(b.sort) || 0;
+      if (sa !== sb) return sa - sb;
+      return (b.created_at || 0) - (a.created_at || 0);
+    });
 }
 
 export function findGoods(id) {
@@ -385,6 +396,28 @@ export function goodsWithStock() {
       kami_total: st.total,
     });
   });
+}
+
+export function reorderCategories(order) {
+  const s = store.load();
+  const ids = order.map((x) => Number(x)).filter((n) => Number.isInteger(n));
+  ids.forEach((id, i) => {
+    const c = (s.goodsCategories || []).find((x) => x.id === id);
+    if (c) c.sort = i;
+  });
+  store.save();
+  return true;
+}
+
+export function reorderGoods(order) {
+  const s = store.load();
+  const ids = order.map((x) => Number(x)).filter((n) => Number.isInteger(n));
+  ids.forEach((id, i) => {
+    const g = (s.goods || []).find((x) => x.id === id);
+    if (g) g.sort = i;
+  });
+  store.save();
+  return true;
 }
 
 export function publicGoodsList() {
@@ -550,8 +583,27 @@ export function resetAllTrade() {
   s.payOrders = [];
   s.kamiStock = [];
   s.kamiIssued = [];
+  s.goods = [];
+  s.goodsCategories = [];
   s.seq.payOrders = 0;
   s.seq.kamiStock = 0;
+  s.seq.goods = 0;
+  s.seq.goodsCategories = 0;
+
+  s.settings.pay_enabled = '0';
+  s.settings.pay_api_url = '';
+  s.settings.pay_pid = '';
+  s.settings.pay_key = '';
+  s.settings.pay_notify_url = '';
+  s.settings.pay_return_url = '';
+  s.settings.pay_entry_donate = '1';
+  s.settings.pay_entry_page = '1';
+  s.settings.pay_entry_post = '0';
+  s.settings.pay_announce = '';
+  s.settings.pay_announce_on = '0';
+  s.settings.faka_show_home = '1';
+  s.settings.pay_bind_verified = '0';
+
   store.save();
   return true;
 }

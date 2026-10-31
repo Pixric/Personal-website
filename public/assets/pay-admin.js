@@ -79,6 +79,9 @@
 
     if ($('payEntryDonate')) $('payEntryDonate').checked = !!p.entry_donate;
     if ($('payEntryPage')) $('payEntryPage').checked = !!p.entry_page;
+    if ($('fakaShowHome')) $('fakaShowHome').checked = !!p.faka_show_home;
+    if ($('announceOn')) $('announceOn').checked = !!p.announce_on;
+    if ($('announceText')) $('announceText').value = p.announce_text || '';
     if ($('donateTitle')) $('donateTitle').value = p.donate_title || '';
     if ($('donateDesc')) $('donateDesc').value = p.donate_desc || '';
     if ($('donatePresets')) $('donatePresets').value = p.donate_presets || '';
@@ -309,6 +312,7 @@
           body: {
             pay_entry_donate: $('payEntryDonate').checked,
             pay_entry_page: $('payEntryPage').checked,
+            faka_show_home: $('fakaShowHome') ? $('fakaShowHome').checked : true,
             donate_title: $('donateTitle').value.trim(),
             donate_desc: $('donateDesc').value.trim(),
             donate_presets: $('donatePresets').value.trim(),
@@ -320,6 +324,50 @@
           toast('入口设置已保存', 'success');
         }).catch(function (e) { msg(el, e.message, 'error'); })
           .finally(function () { btn.disabled = false; });
+      });
+    }
+
+    if ($('saveAnnounce')) {
+      $('saveAnnounce').addEventListener('click', function () {
+        var btn = $('saveAnnounce');
+        var el = $('announceMsg');
+        btn.disabled = true;
+        api('/admin/settings', {
+          method: 'PUT',
+          body: {
+            pay_announce_on: $('announceOn').checked,
+            pay_announce: $('announceText').value,
+          },
+        }).then(function () {
+          msg(el, '已保存', 'success');
+          toast('公告已保存', 'success');
+        }).catch(function (e) { msg(el, e.message, 'error'); })
+          .finally(function () { btn.disabled = false; });
+      });
+    }
+
+    if ($('copyNotify')) {
+      $('copyNotify').addEventListener('click', function () {
+        var input = $('payNotifyUrl');
+        var url = (input.value || '').trim();
+
+        if (!url) {
+          url = location.origin + '/api/pay/notify';
+          input.value = url;
+        }
+
+        var done = function () { toast('通知地址已复制', 'success'); };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(done).catch(function () {
+            input.select();
+            document.execCommand('copy');
+            done();
+          });
+        } else {
+          input.select();
+          document.execCommand('copy');
+          done();
+        }
       });
     }
 

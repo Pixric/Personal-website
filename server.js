@@ -397,6 +397,7 @@ const EDITABLE = [
   'pay_enabled', 'pay_api_url', 'pay_pid', 'pay_key', 'pay_notify_url', 'pay_return_url',
   'pay_entry_donate', 'pay_entry_page', 'pay_entry_post',
   'donate_title', 'donate_desc', 'donate_presets', 'kami_title', 'kami_desc',
+  'pay_announce', 'pay_bind_verified',
   'pay_notify_secret',
 ];
 
@@ -404,6 +405,7 @@ const BOOL_KEYS = [
   'music_enabled', 'github_show_repos', 'github_show_chart', 'bg_api_enabled',
   'anim_intro', 'anim_bg', 'anim_reveal', 'anim_avatar', 'anim_player', 'tg_enabled', 'dark_mode',
   'posts_enabled', 'pay_enabled', 'pay_entry_donate', 'pay_entry_page', 'pay_entry_post',
+  'pay_announce_on', 'faka_show_home', 'pay_bind_verified',
 ];
 
 function adminState() {
@@ -1152,6 +1154,20 @@ async function api(req, res, pathname, method) {
       return sendJson(res, { ok: true });
     }
 
+    if (rest === 'pay/categories/reorder' && method === 'POST') {
+      const body = await readJson(req);
+      const order = Array.isArray(body.order) ? body.order : [];
+      pay.reorderCategories(order);
+      return sendJson(res, { ok: true });
+    }
+
+    if (rest === 'pay/goods/reorder' && method === 'POST') {
+      const body = await readJson(req);
+      const order = Array.isArray(body.order) ? body.order : [];
+      pay.reorderGoods(order);
+      return sendJson(res, { ok: true });
+    }
+
     if (rest === 'pay/categories' && method === 'POST') {
       const body = await readJson(req);
       const name = String(body.name || '').trim();
@@ -1247,6 +1263,9 @@ async function api(req, res, pathname, method) {
           donate_presets: c.donatePresets.join(','),
           kami_title: c.kamiTitle,
           kami_desc: c.kamiDesc,
+          faka_show_home: c.fakaShowHome,
+          announce_on: c.announceOn,
+          announce_text: c.announce,
           site_url: store.getSettings().site_url || '',
         },
         kami: pay.kamiStats(),
@@ -1700,6 +1719,12 @@ async function handler(req, res) {
 
     if (entry && first === entry) {
       return sendBackstage(res);
+    }
+
+    if (pathname === '/faka' || pathname === '/faka/' || pathname === '/pay' || pathname === '/pay/') {
+      const ok = await serveFile(req, res, path.join(PUBLIC, 'faka.html'));
+      if (ok) return;
+      return sendText(res, 'not found', 404);
     }
 
     const postPage = /^\/(?:posts?|帖子)\/([^/]+)\/?$/.exec(pathname);

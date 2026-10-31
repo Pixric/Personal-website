@@ -249,15 +249,30 @@
 
   function setupSupport(site) {
     var p = site.pay || {};
-    if (!p.enabled || !p.entryDonate) return;
+    if (!p.enabled) return;
 
     var bar = $('supportBar');
     var btn = $('supportBtn');
+    var fakaBtn = $('fakaBtn');
     var mask = $('payMask');
-    if (!bar || !btn || !mask) return;
+    if (!bar) return;
 
-    $('supportBtnText').textContent = p.donateTitle || '赞赏';
-    bar.hidden = false;
+    var showDonate = !!p.entryDonate;
+    var showFaka = !!p.fakaShowHome && !!p.entryPage;
+
+    if (fakaBtn) {
+      fakaBtn.hidden = !showFaka;
+      if (showFaka) $('fakaBtnText').textContent = p.kamiTitle || '卡网';
+    }
+
+    if (btn) {
+      btn.hidden = !showDonate;
+      if (showDonate) $('supportBtnText').textContent = p.donateTitle || '赞赏';
+    }
+
+    bar.hidden = !(showDonate || showFaka);
+
+    if (!showDonate || !btn || !mask) return;
 
     var currentKind = 'donate';
     var currentAmount = '';

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" id="metaDesc" content="" />
+<title>卡网</title>
+<link rel="stylesheet" href="/assets/style.css?v=19" />
+<link rel="stylesheet" href="/assets/faka.css?v=19" />
+</head>
+<body>
+
+<div class="bg" id="bg"></div>
+<div class="bg-veil"></div>
+
+<div class="boot" id="boot"><div class="boot-spin"></div></div>
+
+<div class="page faka-page" id="page" hidden>
+
+  <header class="navbar card">
+    <a class="nav-brand" id="navHome" href="/">
+      <span class="nav-avatar-fallback" id="navLogo">海</span>
+      <span class="nav-name" id="navName">首页</span>
+    </a>
+    <a class="faka-back" href="/">返回主页</a>
+  </header>
+
+  <div class="faka-hero card">
+    <h1 class="faka-title" id="fakaTitle">卡网</h1>
+    <p class="faka-sub" id="fakaSub">付款后自动发货</p>
+  </div>
+
+  <div class="announce-card card" id="announceCard" hidden>
+    <div class="announce-head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15 8a4 4 0 0 1 0 8"/></svg>
+      <span>公告</span>
+    </div>
+    <div class="announce-body" id="announceBody"></div>
+  </div>
+
+  <div class="faka-filter" id="fakaFilter"></div>
+
+  <div class="goods-grid" id="goodsGrid"></div>
+
+  <div class="faka-empty card" id="fakaEmpty" hidden>
+    <p>暂无在售商品</p>
+    <span>请稍后再来看看</span>
+  </div>
+</div>
+
+<div class="pay-mask" id="payMask" hidden>
+  <div class="pay-panel card">
+    <div class="pay-head">
+      <div>
+        <div class="pay-title" id="buyTitle">购买</div>
+        <div class="pay-sub" id="buySub"></div>
+      </div>
+      <button class="pay-close" id="payClose" type="button" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <div class="pay-body">
+      <div class="buy-goods" id="buyGoods"></div>
+      <div class="pay-types" id="payTypes">
+        <label class="pay-type active" data-type="alipay">
+          <input type="radio" name="paytype" value="alipay" checked hidden />
+          <span>支付宝</span>
+        </label>
+        <label class="pay-type" data-type="wxpay">
+          <input type="radio" name="paytype" value="wxpay" hidden />
+          <span>微信支付</span>
+        </label>
+      </div>
+      <button class="pay-submit" id="buySubmit" type="button">立即支付</button>
+      <p class="pay-tip" id="buyTip"></p>
+    </div>
+  </div>
+</div>
+
+<div class="pay-mask" id="resultMask" hidden>
+  <div class="pay-panel card result-panel">
+    <div class="result-icon" id="resultIcon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>
+    </div>
+    <h3 class="result-title" id="resultTitle">支付成功</h3>
+    <p class="result-sub" id="resultSub"></p>
+
+    <div class="kami-box" id="kamiBox" hidden>
+      <div class="kami-label">你的卡密</div>
+      <div class="kami-code" id="kamiCode"></div>
+      <button class="btn small" id="copyKami" type="button">复制卡密</button>
+    </div>
+
+    <button class="pay-submit" id="resultClose" type="button">完成</button>
+  </div>
+</div>
+
+<script src="/assets/faka.js?v=19"></script>
+</body>
+</html>

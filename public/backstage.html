@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex, nofollow" />
 <title>后台管理</title>
-<link rel="stylesheet" href="/assets/backstage.css?v=18" />
-<link rel="stylesheet" href="/assets/cropper.min.css?v=18" />
-<link rel="stylesheet" href="/assets/cover.css?v=18" />
-<link rel="stylesheet" href="/assets/posts-admin.css?v=18" />
+<link rel="stylesheet" href="/assets/backstage.css?v=19" />
+<link rel="stylesheet" href="/assets/cropper.min.css?v=19" />
+<link rel="stylesheet" href="/assets/cover.css?v=19" />
+<link rel="stylesheet" href="/assets/posts-admin.css?v=19" />
 </head>
 <body>
 
@@ -681,6 +681,11 @@
         <p>店铺成交、订单与库存概况。</p>
       </header>
 
+      <div class="trade-blessing">
+        <span class="tb-main">Co 祝你月入百万！</span>
+        <span class="tb-sub">每一笔成交都在为你累积</span>
+      </div>
+
       <div class="trade-hero" id="tradeHero">
         <div class="trade-hero-item"><strong id="tpWaitPay">0</strong><span>待付款</span></div>
         <div class="trade-hero-item"><strong id="tpKamiAvail">0</strong><span>卡密库存</span></div>
@@ -891,6 +896,35 @@
         <p>配置支付接口、前台入口与数据管理。</p>
       </header>
 
+      <div class="panel bind-guide">
+        <h3>首次绑定步骤</h3>
+        <ol class="bind-steps">
+          <li>
+            <b>在支付平台创建应用</b>
+            <span>登录支付平台商户后台，进入「应用密钥」页面，记下<b>商户编号</b>（2088 开头）。</span>
+          </li>
+          <li>
+            <b>复制 MD5 密钥</b>
+            <span>在同一页面找到 MD5 密钥，点击复制图标。这个密钥只显示在平台侧。</span>
+          </li>
+          <li>
+            <b>填写下方接口配置</b>
+            <span>接口地址填支付平台域名，商户编号和密钥粘贴进来，点「保存配置」。</span>
+          </li>
+          <li>
+            <b>复制通知地址到平台</b>
+            <span>保存后点「复制通知地址」按钮，把地址粘贴到支付平台的「异步通知地址」里，否则收不到付款通知。</span>
+          </li>
+          <li>
+            <b>开启交易并测试</b>
+            <span>打开上方总开关，在卡网页面下一个 0.01 元的小单验证整个流程。</span>
+          </li>
+        </ol>
+        <div class="bind-warn">
+          密钥只保存在服务器上，不会回显也不会发送到浏览器。
+        </div>
+      </div>
+
       <div class="panel">
         <h3>总开关</h3>
         <label class="switch-row">
@@ -915,11 +949,14 @@
           <input id="payKey" type="password" placeholder="留空表示不修改" spellcheck="false" autocomplete="new-password" />
           <span class="field-hint" id="payKeyHint">密钥只在服务端使用，不会发送到浏览器</span>
         </label>
-        <label class="field">
+        <div class="field">
           <span class="field-label">异步通知地址 (notify_url)</span>
-          <input id="payNotifyUrl" type="text" placeholder="https://你的域名/api/pay/notify" spellcheck="false" />
-          <span class="field-hint">留空则自动使用当前站点地址</span>
-        </label>
+          <div class="row gap">
+            <input id="payNotifyUrl" type="text" placeholder="https://你的域名/api/pay/notify" spellcheck="false" />
+            <button class="btn ghost small" id="copyNotify" type="button">复制通知地址</button>
+          </div>
+          <span class="field-hint">保存后点「复制通知地址」，粘贴到支付平台的异步通知设置里</span>
+        </div>
         <label class="field">
           <span class="field-label">支付完成跳转地址 (return_url)</span>
           <input id="payReturnUrl" type="text" placeholder="https://你的域名/" spellcheck="false" />
@@ -935,12 +972,16 @@
         <h3>前台入口</h3>
         <div class="switch-list">
           <label class="switch-row">
-            <span><b>主页赞赏按钮</b><em>主页显示「赞赏」入口，支持自定义金额</em></span>
+            <span><b>赞赏功能</b><em>主页显示「赞赏」按钮，访客可自定义金额</em></span>
             <input type="checkbox" id="payEntryDonate" />
           </label>
           <label class="switch-row">
-            <span><b>卡密购买页面</b><em>访问 /pay 可以购买卡密</em></span>
+            <span><b>卡网功能</b><em>开启后可通过 /faka 访问卡网页面</em></span>
             <input type="checkbox" id="payEntryPage" />
+          </label>
+          <label class="switch-row">
+            <span><b>主页显示卡网入口</b><em>主页显示「卡网」按钮，跳转到商品列表</em></span>
+            <input type="checkbox" id="fakaShowHome" />
           </label>
         </div>
         <div class="grid-2" style="margin-top:14px">
@@ -973,12 +1014,36 @@
         </div>
       </div>
 
+      <div class="panel">
+        <h3>卡网公告</h3>
+        <label class="switch-row">
+          <span><b>显示公告</b><em>在卡网页面顶部展示公告内容</em></span>
+          <input type="checkbox" id="announceOn" />
+        </label>
+        <label class="field" style="margin-top:14px">
+          <span class="field-label">公告内容</span>
+          <textarea id="announceText" rows="5" maxlength="2000" placeholder="例如：今日库存已更新，下单后自动发货。"></textarea>
+        </label>
+        <div class="row">
+          <button class="btn primary" id="saveAnnounce" type="button">保存公告</button>
+          <span class="msg inline" id="announceMsg"></span>
+        </div>
+      </div>
+
       <div class="panel panel-danger">
         <h3>重置所有</h3>
-        <p class="field-hint" style="margin-bottom:12px">
-          将清空全部订单记录与卡密库存，此操作不可恢复。支付接口配置会保留。
-        </p>
-        <div class="row">
+        <div class="reset-list">
+          <b>将彻底清除以下内容：</b>
+          <ul>
+            <li>全部订单记录</li>
+            <li>全部卡密（含已发放的）</li>
+            <li>全部商品与分类</li>
+            <li>支付接口配置（地址、商户号、密钥）</li>
+            <li>公告、入口开关等设置</li>
+          </ul>
+          <span>此操作不可恢复，请谨慎使用。</span>
+        </div>
+        <div class="row" style="margin-top:12px">
           <input id="resetConfirm" type="text" placeholder="输入 RESET 以确认" />
           <button class="btn danger" id="resetTrade" type="button">重置所有</button>
           <span class="msg inline" id="resetMsg"></span>
@@ -1236,13 +1301,13 @@
 
 <div id="modalRoot"></div>
 
-<script src="/assets/icons.js?v=18"></script>
+<script src="/assets/icons.js?v=19"></script>
 <script>window.__APP_VERSION__ = '1.2.0';</script>
-<script src="/assets/cropper.min.js?v=18"></script>
-<script src="/assets/cover.js?v=18"></script>
-<script src="/assets/posts-admin.js?v=18"></script>
-<script src="/assets/pay-admin.js?v=18"></script>
-<script src="/assets/goods-admin.js?v=18"></script>
-<script src="/assets/backstage.js?v=18"></script>
+<script src="/assets/cropper.min.js?v=19"></script>
+<script src="/assets/cover.js?v=19"></script>
+<script src="/assets/posts-admin.js?v=19"></script>
+<script src="/assets/pay-admin.js?v=19"></script>
+<script src="/assets/goods-admin.js?v=19"></script>
+<script src="/assets/backstage.js?v=19"></script>
 </body>
 </html>

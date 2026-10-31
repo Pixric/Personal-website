@@ -592,3 +592,23 @@ body.intro-anim .bg{ animation:bgIn var(--intro-dur) var(--ease) both; }
   color:var(--text-3); text-align:center;
   min-height:16px;
 }
+
+.support-bar{
+  display:flex; justify-content:center;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  padding:8px 0 24px;
+}
+.support-btn{
+  display:inline-flex; align-items:center; gap:7px;
+  padding:9px 20px;
+  font-size:13px; font-family:inherit;
+  border-radius:999px;
+  border:1px solid var(--border-strong);
+  background:var(--card-solid);
+  color:var(--text-2);
+  cursor:pointer;
+  text-decoration:none;
+  transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+}
