@@ -1052,9 +1052,22 @@ async function api(req, res, pathname, method) {
 
   if (pathname === '/api/pay/notify' && method === 'POST') {
     const raw = await readRaw(req);
-    const params = new URLSearchParams(raw.toString('utf8'));
+    const ctype = String(req.headers['content-type'] || '');
     const map = {};
-    for (const [k, v] of params.entries()) map[k] = v;
+
+    if (ctype.indexOf('multipart/form-data') >= 0) {
+      const parts = parseMultipart(raw, ctype);
+      if (!parts) {
+        console.error('[pay-notify] multipart 解析失败');
+        return sendText(res, 'fail', 400);
+      }
+      for (const p of parts) {
+        if (p.name) map[p.name] = p.data.toString('utf8').trim();
+      }
+    } else {
+      const params = new URLSearchParams(raw.toString('utf8'));
+      for (const [k, v] of params.entries()) map[k] = v;
+    }
 
     const c = pay.payConfig();
     if (!c.key) {
