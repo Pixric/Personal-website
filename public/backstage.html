@@ -1049,6 +1049,21 @@
         </div>
       </div>
 
+      <div class="panel" id="paySupportPanel">
+        <h3>售后联系</h3>
+        <p class="field-hint" style="margin-bottom:12px">
+          买家在卡密页看到的联系说明。Telegram 和邮箱会自动读取「社交链接」里配置的内容。
+        </p>
+        <label class="field">
+          <span class="field-label">售后说明</span>
+          <textarea id="supportText" rows="4" maxlength="500" placeholder="例如：卡密有问题请带订单号联系 Telegram 频道"></textarea>
+        </label>
+        <div class="row">
+          <button class="btn primary" id="saveSupport" type="button">保存</button>
+          <span class="msg inline" id="supportMsg"></span>
+        </div>
+      </div>
+
       <div class="panel panel-danger" data-pay-panel="payResetPanel" id="payResetPanel">
         <h3>重置所有</h3>
         <div class="reset-list">

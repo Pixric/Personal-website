@@ -64,6 +64,7 @@ const DEFAULTS = {
   pay_bind_verified: '0',
   pay_ask_phone: '1',
   pay_client_mode: '0',
+  pay_support_text: '',
   donate_title: '赞赏一下',
   donate_desc: '如果内容对你有帮助，可以请我喝杯咖啡',
   donate_presets: '5,10,20,50',

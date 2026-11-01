@@ -84,6 +84,7 @@
     if ($('payClientMode')) $('payClientMode').checked = !!p.client_mode;
     if ($('announceOn')) $('announceOn').checked = !!p.announce_on;
     if ($('announceText')) $('announceText').value = p.announce_text || '';
+    if ($('supportText')) $('supportText').value = p.support_text || '';
     if ($('donateTitle')) $('donateTitle').value = p.donate_title || '';
     if ($('donateDesc')) $('donateDesc').value = p.donate_desc || '';
     if ($('donatePresets')) $('donatePresets').value = p.donate_presets || '';
@@ -424,6 +425,22 @@
         }).then(function () {
           msg(el, '已保存', 'success');
           toast('公告已保存', 'success');
+        }).catch(function (e) { msg(el, e.message, 'error'); })
+          .finally(function () { btn.disabled = false; });
+      });
+    }
+
+    if ($('saveSupport')) {
+      $('saveSupport').addEventListener('click', function () {
+        var btn = $('saveSupport');
+        var el = $('supportMsg');
+        btn.disabled = true;
+        api('/admin/settings', {
+          method: 'PUT',
+          body: { pay_support_text: $('supportText').value },
+        }).then(function () {
+          msg(el, '已保存', 'success');
+          toast('售后说明已保存', 'success');
         }).catch(function (e) { msg(el, e.message, 'error'); })
           .finally(function () { btn.disabled = false; });
       });

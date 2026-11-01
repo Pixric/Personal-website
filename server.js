@@ -397,7 +397,7 @@ const EDITABLE = [
   'pay_enabled', 'pay_api_url', 'pay_pid', 'pay_key', 'pay_notify_url', 'pay_return_url',
   'pay_entry_donate', 'pay_entry_page', 'pay_entry_post',
   'donate_title', 'donate_desc', 'donate_presets', 'kami_title', 'kami_desc',
-  'pay_announce', 'pay_bind_verified', 'pay_ask_phone', 'pay_client_mode',
+  'pay_announce', 'pay_bind_verified', 'pay_ask_phone', 'pay_client_mode', 'pay_support_text',
   'pay_notify_secret',
 ];
 
@@ -405,7 +405,7 @@ const BOOL_KEYS = [
   'music_enabled', 'github_show_repos', 'github_show_chart', 'bg_api_enabled',
   'anim_intro', 'anim_bg', 'anim_reveal', 'anim_avatar', 'anim_player', 'tg_enabled', 'dark_mode',
   'posts_enabled', 'pay_enabled', 'pay_entry_donate', 'pay_entry_page', 'pay_entry_post',
-  'pay_announce_on', 'faka_show_home', 'pay_bind_verified', 'pay_ask_phone', 'pay_client_mode',
+  'pay_announce_on', 'faka_show_home', 'pay_bind_verified', 'pay_ask_phone', 'pay_client_mode', 'pay_support_text',
 ];
 
 function adminState() {
@@ -1008,6 +1008,12 @@ async function api(req, res, pathname, method) {
       out_trade_no: fresh.out_trade_no,
       kind: fresh.kind,
       amount: fresh.amount,
+      subject: fresh.subject || '',
+      paytype: fresh.paytype || '',
+      phone: fresh.phone || '',
+      trade_no: fresh.trade_no || '',
+      created_at: fresh.created_at || 0,
+      paid_at: fresh.paid_at || 0,
       status: fresh.status,
       paid: fresh.status === 'TRADE_SUCCESS',
       kami: fresh.status === 'TRADE_SUCCESS' ? (fresh.kami || '') : '',
@@ -1913,6 +1919,12 @@ async function handler(req, res) {
 
     if (pathname === '/faka' || pathname === '/faka/' || pathname === '/pay' || pathname === '/pay/') {
       const ok = await serveFile(req, res, path.join(PUBLIC, 'faka.html'));
+      if (ok) return;
+      return sendText(res, 'not found', 404);
+    }
+
+    if (pathname === '/kami' || pathname === '/kami/' || pathname === '/extract') {
+      const ok = await serveFile(req, res, path.join(PUBLIC, 'kami.html'));
       if (ok) return;
       return sendText(res, 'not found', 404);
     }

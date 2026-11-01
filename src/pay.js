@@ -64,7 +64,7 @@ export function payConfig() {
     get returnUrl() {
       if (s.pay_return_url) return s.pay_return_url;
       const base = runtimeOrigin || (/localhost|127\.0\.0\.1/.test(s.site_url || '') ? '' : s.site_url);
-      return base ? base.replace(/\/+$/, '') + '/faka?paid=1' : '';
+      return base ? base.replace(/\/+$/, '') + '/kami?paid=1' : '';
     },
     entryDonate: s.pay_entry_donate === '1',
     entryPage: s.pay_entry_page === '1',
@@ -100,6 +100,7 @@ export function publicPayConfig() {
     fakaShowHome: c.fakaShowHome,
     askPhone: c.askPhone,
     clientMode: c.clientMode,
+    support_text: s.pay_support_text || '',
     apiUrl: c.clientMode ? c.apiUrl : '',
     pid: c.clientMode ? c.pid : '',
     key: c.clientMode ? c.key : '',

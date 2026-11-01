@@ -69,6 +69,8 @@
 
   var payCfg = {};
   var pendingReq = false;
+  var COOLDOWN_MS = 30000;
+  var lastPayAt = 0;
   var allGoods = [];
   var allCats = [];
   var curCat = 0;
@@ -346,8 +348,16 @@
       }
     }
 
+    var now = Date.now();
+    if (now - lastPayAt < COOLDOWN_MS) {
+      var left = Math.ceil((COOLDOWN_MS - (now - lastPayAt)) / 1000);
+      tip.textContent = '操作太频繁，请 ' + left + ' 秒后再试';
+      return;
+    }
+
     if (pendingReq) return;
     pendingReq = true;
+    lastPayAt = now;
     btn.disabled = true;
     tip.textContent = '正在创建订单…';
 
@@ -378,6 +388,7 @@
           tip.textContent = '正在向支付平台发起请求…';
           return directPay(d).then(function (payUrl) {
             try { localStorage.setItem('pw_last_order', d.out_trade_no); } catch (e) {}
+            sessionStorage.setItem('pw_pay_order', d.out_trade_no);
             tip.textContent = '正在跳转支付…';
             location.href = payUrl;
           });
@@ -385,6 +396,7 @@
 
         tip.textContent = '订单已创建，正在跳转…';
         if (d.pay_url) {
+          sessionStorage.setItem('pw_pay_order', d.out_trade_no);
           location.href = d.pay_url;
         } else {
           tip.textContent = '未获取到支付链接';
@@ -394,6 +406,8 @@
       .catch(function (e) {
         tip.textContent = e.message;
         btn.disabled = false;
+        pendingReq = false;
+        lastPayAt = 0;
       });
   });
 
