@@ -62,7 +62,7 @@ const DEFAULTS = {
   pay_announce_on: '0',
   faka_show_home: '1',
   pay_bind_verified: '0',
-  pay_ask_phone: '0',
+  pay_ask_phone: '1',
   pay_client_mode: '0',
   donate_title: '赞赏一下',
   donate_desc: '如果内容对你有帮助，可以请我喝杯咖啡',

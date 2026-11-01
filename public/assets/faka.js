@@ -68,6 +68,7 @@
   }
 
   var payCfg = {};
+  var pendingReq = false;
   var allGoods = [];
   var allCats = [];
   var curCat = 0;
@@ -168,6 +169,7 @@
 
   function openBuy(g) {
     curGoods = g;
+    pendingReq = false;
     $('buyTitle').textContent = '购买商品';
     $('buySub').textContent = '付款后自动发放卡密';
 
@@ -225,15 +227,63 @@
       .then(function (d) {
         if (d.ok && d.paid && d.kami) {
           showResult(true, '支付成功', '卡密已发放，请妥善保存', d.kami);
-        } else if (d.ok && d.paid) {
-          showResult(true, '支付成功', '请联系站长领取卡密', '');
-        } else {
-          setTimeout(function () { pollStatus(no, n + 1); }, 2000);
+          try { localStorage.removeItem('pw_last_order'); } catch (e) {}
+          return;
         }
+        if (d.ok && d.paid) {
+          showResult(true, '支付成功', '请联系站长领取卡密', '');
+          return;
+        }
+
+        if (d.ok && d.client_query && d.client_query.endpoint) {
+          return queryByClient(d.client_query, no).then(function (resp) {
+            if (resp && resp.data && resp.data.trade_status === 'TRADE_SUCCESS') {
+              return confirmPaid(no, resp).then(function (r) {
+                if (r && r.ok && r.kami) {
+                  showResult(true, '支付成功', '卡密已发放，请妥善保存', r.kami);
+                  try { localStorage.removeItem('pw_last_order'); } catch (e) {}
+                  return;
+                }
+                setTimeout(function () { pollStatus(no, n + 1); }, 1500);
+              }).catch(function () {
+                setTimeout(function () { pollStatus(no, n + 1); }, 2000);
+              });
+            }
+            setTimeout(function () { pollStatus(no, n + 1); }, 2000);
+          }).catch(function () {
+            setTimeout(function () { pollStatus(no, n + 1); }, 2500);
+          });
+        }
+
+        setTimeout(function () { pollStatus(no, n + 1); }, 2000);
       })
       .catch(function () {
-        setTimeout(function () { pollStatus(no, n + 1); }, 2000);
+        setTimeout(function () { pollStatus(no, n + 1); }, 2500);
       });
+  }
+
+  function queryByClient(q) {
+    return fetch(q.endpoint, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: q.body,
+    })
+      .then(function (r) { return r.text(); })
+      .then(function (text) {
+        var data;
+        try { data = JSON.parse(text); } catch (e) { return null; }
+        if (Number(data.code) !== 1) return null;
+        return data;
+      });
+  }
+
+  function confirmPaid(no, resp) {
+    return fetch('/api/pay/confirm', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ out_trade_no: no, response: resp }),
+    }).then(function (r) { return r.json(); });
   }
 
   function init() {
@@ -296,6 +346,8 @@
       }
     }
 
+    if (pendingReq) return;
+    pendingReq = true;
     btn.disabled = true;
     tip.textContent = '正在创建订单…';
 
@@ -325,6 +377,7 @@
         if (d.client_mode && d.endpoint && d.body) {
           tip.textContent = '正在向支付平台发起请求…';
           return directPay(d).then(function (payUrl) {
+            try { localStorage.setItem('pw_last_order', d.out_trade_no); } catch (e) {}
             tip.textContent = '正在跳转支付…';
             location.href = payUrl;
           });
@@ -553,9 +606,22 @@
     });
   }
 
+  var qs = new URLSearchParams(location.search);
   var pendingOrder = sessionStorage.getItem('pw_pay_order');
-  if (pendingOrder) {
-    pollStatus(pendingOrder, 0);
+  if (!pendingOrder) {
+    try { pendingOrder = localStorage.getItem('pw_last_order'); } catch (e) {}
+  }
+
+  if (pendingOrder && (qs.get('paid') === '1' || qs.get('from') === 'pay')) {
+    setTimeout(function () {
+      document.getElementById('resultMask').hidden = false;
+      document.getElementById('resultIcon').className = 'result-icon pending';
+      document.getElementById('resultTitle').textContent = '正在确认支付结果';
+      document.getElementById('resultSub').textContent = '请稍候，正在向支付平台核实…';
+      document.getElementById('kamiBox').hidden = true;
+      document.getElementById('resultClose').hidden = true;
+      pollStatus(pendingOrder, 0);
+    }, 300);
   }
 
   init();

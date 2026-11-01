@@ -974,7 +974,7 @@ async function api(req, res, pathname, method) {
           });
           const fresh = pay.findOrderByOutTradeNo(no);
           if (fresh.kind === 'kami' && !fresh.kami) {
-            const got = pay.allocateKami(fresh.id);
+            const got = pay.allocateKami(fresh.id, fresh.goods_id);
             if (got) pay.updateOrder(fresh.id, { kami: got.code });
           }
         } else if (q.status) {
@@ -986,6 +986,23 @@ async function api(req, res, pathname, method) {
     }
 
     const fresh = pay.findOrderByOutTradeNo(no);
+
+    if (fresh.status !== 'TRADE_SUCCESS' && pay.payConfig().clientMode) {
+      try {
+        const qp = pay.buildQueryParams(no);
+        return sendJson(res, {
+          ok: true,
+          out_trade_no: fresh.out_trade_no,
+          kind: fresh.kind,
+          amount: fresh.amount,
+          status: fresh.status,
+          paid: false,
+          kami: '',
+          client_query: { endpoint: qp.endpoint, body: qp.body },
+        });
+      } catch (e) {}
+    }
+
     return sendJson(res, {
       ok: true,
       out_trade_no: fresh.out_trade_no,
@@ -995,6 +1012,42 @@ async function api(req, res, pathname, method) {
       paid: fresh.status === 'TRADE_SUCCESS',
       kami: fresh.status === 'TRADE_SUCCESS' ? (fresh.kami || '') : '',
     });
+  }
+
+  if (pathname === '/api/pay/confirm' && method === 'POST') {
+    const body = await readJson(req);
+    const no = String(body.out_trade_no || '');
+    const order = pay.findOrderByOutTradeNo(no);
+    if (!order) return sendJson(res, { ok: false, error: '订单不存在' }, 404);
+
+    const raw = body.response;
+    if (!raw || typeof raw !== 'object') {
+      return sendJson(res, { ok: false, error: '缺少平台返回数据' }, 400);
+    }
+
+    const data = raw.data || raw;
+    const c = pay.payConfig();
+
+    if (String(data.out_trade_no || '') !== no) {
+      return sendJson(res, { ok: false, error: '订单号不匹配' }, 400);
+    }
+    if (String(data.trade_status || '') !== 'TRADE_SUCCESS') {
+      return sendJson(res, { ok: false, error: '平台未确认支付成功' }, 400);
+    }
+    if (String(data.pid || '') !== String(c.pid)) {
+      return sendJson(res, { ok: false, error: '商户号不匹配' }, 400);
+    }
+    if (String(data.total_amount || '') !== String(order.amount)) {
+      return sendJson(res, { ok: false, error: '金额不匹配' }, 400);
+    }
+
+    if (data.sign && !pay.verifySign(data, c.key, data.sign_type || 'MD5')) {
+      return sendJson(res, { ok: false, error: '平台签名校验失败' }, 400);
+    }
+
+    pay.markPaid(order, { trade_no: String(data.trade_no || '') });
+    const fresh = pay.findOrderByOutTradeNo(no);
+    return sendJson(res, { ok: true, paid: true, kami: fresh.kami || '' });
   }
 
   if (pathname === '/api/pay/notify' && method === 'POST') {
@@ -1010,7 +1063,13 @@ async function api(req, res, pathname, method) {
     }
 
     if (!pay.verifySign(map, c.key, map.sign_type || 'MD5')) {
-      console.error('[pay-notify] 签名验证失败', map.out_trade_no);
+      console.error('[pay-notify] 签名验证失败', JSON.stringify(map));
+      console.error('[pay-notify] 我方计算签名', pay.buildSign(map, c.key, map.sign_type || 'MD5'));
+      try {
+        const fsmod = await import('node:fs');
+        fsmod.appendFileSync('/tmp/pay-notify-fail.log',
+          new Date().toISOString() + ' ' + JSON.stringify(map) + '\n');
+      } catch (e) {}
       return sendText(res, 'fail', 400);
     }
 

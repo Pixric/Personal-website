@@ -61,7 +61,11 @@ export function payConfig() {
       if (!base || /localhost|127\.0\.0\.1/.test(base)) return '';
       return base.replace(/\/+$/, '') + '/api/pay/notify';
     },
-    returnUrl: s.pay_return_url || '',
+    get returnUrl() {
+      if (s.pay_return_url) return s.pay_return_url;
+      const base = runtimeOrigin || (/localhost|127\.0\.0\.1/.test(s.site_url || '') ? '' : s.site_url);
+      return base ? base.replace(/\/+$/, '') + '/faka?paid=1' : '';
+    },
     entryDonate: s.pay_entry_donate === '1',
     entryPage: s.pay_entry_page === '1',
     entryPost: s.pay_entry_post === '1',
@@ -543,6 +547,26 @@ export async function createPayment(opts) {
     payUrl: data.pay_url || '',
     amount,
   };
+}
+
+export function buildQueryParams(outTradeNo) {
+  const c = payConfig();
+  if (!c.apiUrl || !c.pid || !c.key) throw new Error('支付参数未配置完整');
+
+  const params = {
+    pid: c.pid,
+    out_trade_no: String(outTradeNo),
+    timestamp: String(Math.floor(Date.now() / 1000)),
+    sign_type: 'MD5',
+  };
+  params.sign = buildSign(params, c.key, 'MD5');
+
+  const body = Object.keys(params)
+    .filter((k) => params[k] !== '' && params[k] != null)
+    .map((k) => k + '=' + encodeURIComponent(String(params[k])))
+    .join('&');
+
+  return { endpoint: c.apiUrl + '/openapi/pay/query', body };
 }
 
 export async function queryPayment(outTradeNo) {
