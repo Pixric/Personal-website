@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex, nofollow" />
 <title>后台管理</title>
-<link rel="stylesheet" href="/assets/backstage.css?v=20" />
-<link rel="stylesheet" href="/assets/cropper.min.css?v=20" />
-<link rel="stylesheet" href="/assets/cover.css?v=20" />
-<link rel="stylesheet" href="/assets/posts-admin.css?v=20" />
+<link rel="stylesheet" href="/assets/backstage.css?v=21" />
+<link rel="stylesheet" href="/assets/cropper.min.css?v=21" />
+<link rel="stylesheet" href="/assets/cover.css?v=21" />
+<link rel="stylesheet" href="/assets/posts-admin.css?v=21" />
 </head>
 <body>
 
@@ -968,6 +968,21 @@
         </div>
       </div>
 
+      <div class="panel" data-pay-panel="payClientPanel" id="payClientPanel">
+        <h3>下单方式</h3>
+        <label class="switch-row">
+          <span>
+            <b>浏览器直连支付平台</b>
+            <em>开启后由访客浏览器直接请求支付平台，可绕过服务器 IP 被封的问题</em>
+          </span>
+          <input type="checkbox" id="payClientMode" />
+        </label>
+        <div class="bind-warn" style="margin-top:12px">
+          直连模式下商户密钥会下发到浏览器，任何访客都能从源码里看到。
+          仅建议在临时验证流程时开启，正式运营请关闭并让平台放行服务器 IP。
+        </div>
+      </div>
+
       <div class="panel" data-pay-panel="payEntryPanel" id="payEntryPanel">
         <h3>前台入口</h3>
         <div class="switch-list">
@@ -1305,13 +1320,13 @@
 
 <div id="modalRoot"></div>
 
-<script src="/assets/icons.js?v=20"></script>
+<script src="/assets/icons.js?v=21"></script>
 <script>window.__APP_VERSION__ = '1.2.0';</script>
-<script src="/assets/cropper.min.js?v=20"></script>
-<script src="/assets/cover.js?v=20"></script>
-<script src="/assets/posts-admin.js?v=20"></script>
-<script src="/assets/pay-admin.js?v=20"></script>
-<script src="/assets/goods-admin.js?v=20"></script>
-<script src="/assets/backstage.js?v=20"></script>
+<script src="/assets/cropper.min.js?v=21"></script>
+<script src="/assets/cover.js?v=21"></script>
+<script src="/assets/posts-admin.js?v=21"></script>
+<script src="/assets/pay-admin.js?v=21"></script>
+<script src="/assets/goods-admin.js?v=21"></script>
+<script src="/assets/backstage.js?v=21"></script>
 </body>
 </html>

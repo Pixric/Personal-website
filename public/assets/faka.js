@@ -320,9 +320,18 @@
         });
       })
       .then(function (d) {
+        sessionStorage.setItem('pw_pay_order', d.out_trade_no);
+
+        if (d.client_mode && d.endpoint && d.body) {
+          tip.textContent = '正在向支付平台发起请求…';
+          return directPay(d).then(function (payUrl) {
+            tip.textContent = '正在跳转支付…';
+            location.href = payUrl;
+          });
+        }
+
         tip.textContent = '订单已创建，正在跳转…';
         if (d.pay_url) {
-          sessionStorage.setItem('pw_pay_order', d.out_trade_no);
           location.href = d.pay_url;
         } else {
           tip.textContent = '未获取到支付链接';
@@ -349,6 +358,37 @@
     $('resultMask').hidden = true;
     sessionStorage.removeItem('pw_pay_order');
   });
+
+  function directPay(d) {
+    return fetch(d.endpoint, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: d.body,
+    })
+      .then(function (r) {
+        return r.text().then(function (text) {
+          if (r.status === 456 || text.indexOf('_guard/html.js') >= 0) {
+            throw new Error('支付平台拦截了请求，请稍后重试或联系站长');
+          }
+          var data;
+          try { data = JSON.parse(text); }
+          catch (e) { throw new Error('支付平台返回异常，请稍后重试'); }
+          if (Number(data.code) !== 1) {
+            throw new Error(data.msg || '支付平台返回失败');
+          }
+          if (!data.data || !data.data.pay_url) {
+            throw new Error('未获取到支付链接');
+          }
+          return data.data.pay_url;
+        });
+      })
+      .catch(function (e) {
+        if (e && e.name === 'TypeError') {
+          throw new Error('无法连接支付平台，可能是网络或跨域问题');
+        }
+        throw e;
+      });
+  }
 
   function showCaptcha(onPass) {
     var mask = document.createElement('div');

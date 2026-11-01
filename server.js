@@ -397,7 +397,7 @@ const EDITABLE = [
   'pay_enabled', 'pay_api_url', 'pay_pid', 'pay_key', 'pay_notify_url', 'pay_return_url',
   'pay_entry_donate', 'pay_entry_page', 'pay_entry_post',
   'donate_title', 'donate_desc', 'donate_presets', 'kami_title', 'kami_desc',
-  'pay_announce', 'pay_bind_verified', 'pay_ask_phone',
+  'pay_announce', 'pay_bind_verified', 'pay_ask_phone', 'pay_client_mode',
   'pay_notify_secret',
 ];
 
@@ -405,7 +405,7 @@ const BOOL_KEYS = [
   'music_enabled', 'github_show_repos', 'github_show_chart', 'bg_api_enabled',
   'anim_intro', 'anim_bg', 'anim_reveal', 'anim_avatar', 'anim_player', 'tg_enabled', 'dark_mode',
   'posts_enabled', 'pay_enabled', 'pay_entry_donate', 'pay_entry_page', 'pay_entry_post',
-  'pay_announce_on', 'faka_show_home', 'pay_bind_verified', 'pay_ask_phone',
+  'pay_announce_on', 'faka_show_home', 'pay_bind_verified', 'pay_ask_phone', 'pay_client_mode',
 ];
 
 function adminState() {
@@ -803,6 +803,10 @@ async function api(req, res, pathname, method) {
   }
 
   if (pathname === '/api/pay/create' && method === 'POST') {
+    const proto = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+    const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+    if (host) pay.setRuntimeOrigin(proto + '://' + host);
+
     const c = pay.payConfig();
     if (!c.enabled) return sendJson(res, { ok: false, error: '支付功能未开启' }, 403);
 
@@ -846,6 +850,39 @@ async function api(req, res, pathname, method) {
     const outTradeNo = pay.nextOutTradeNo(kind === 'kami' ? 'KM' : 'DON');
 
     try {
+      if (c.clientMode) {
+        const built = pay.buildOrderParams({
+          amount,
+          subject,
+          paytype,
+          outTradeNo,
+          attach: kind,
+          clientIp: clientIp(req),
+        });
+
+        pay.createOrder({
+          out_trade_no: built.outTradeNo,
+          trade_no: '',
+          kind,
+          amount: built.amount,
+          subject,
+          paytype,
+          goods_id: goodsId,
+          phone: String(body.phone || '').replace(/\D/g, '').slice(0, 11),
+          pay_url: '',
+        });
+
+        return sendJson(res, {
+          ok: true,
+          client_mode: true,
+          out_trade_no: built.outTradeNo,
+          endpoint: built.endpoint,
+          body: built.body,
+          amount: built.amount,
+          kind,
+        });
+      }
+
       const created = await pay.createPayment({
         amount,
         subject,
@@ -1306,6 +1343,7 @@ async function api(req, res, pathname, method) {
           kami_desc: c.kamiDesc,
           faka_show_home: c.fakaShowHome,
           ask_phone: c.askPhone,
+          client_mode: c.clientMode,
           announce_on: c.announceOn,
           announce_text: c.announce,
           site_url: store.getSettings().site_url || '',
@@ -1359,12 +1397,19 @@ async function api(req, res, pathname, method) {
           let data = null;
           try { data = JSON.parse(text); } catch {}
 
-          if (data && Number(data.code) === 1) {
+          if (probe.status === 456 || /_guard\/html\.js/.test(text)) {
+            steps.push({
+              name: '平台防火墙',
+              ok: false,
+              detail: '服务器 IP 被支付平台拦截（HTTP 456），需在平台后台把 ' +
+                (store.getSettings().server_ip_hint || '本服务器 IP') + ' 加入白名单',
+            });
+          } else if (!data) {
+            steps.push({ name: '平台验签', ok: false, detail: '平台返回非 JSON（HTTP ' + probe.status + '）' });
+          } else if (Number(data.code) === 1) {
             steps.push({ name: '平台验签', ok: true, detail: '商户号与密钥有效' });
-          } else if (data && data.msg) {
-            steps.push({ name: '平台验签', ok: false, detail: data.msg });
           } else {
-            steps.push({ name: '平台验签', ok: false, detail: '返回格式异常' });
+            steps.push({ name: '平台验签', ok: false, detail: data.msg || '验签失败' });
           }
         } catch (e) {
           steps.push({ name: '平台连接', ok: false, detail: '无法连接: ' + (e && e.message ? e.message : '网络错误') });

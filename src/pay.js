@@ -41,6 +41,12 @@ export function verifySign(params, key, signType) {
   }
 }
 
+let runtimeOrigin = '';
+
+export function setRuntimeOrigin(origin) {
+  runtimeOrigin = String(origin || '').replace(/\/+$/, '');
+}
+
 export function payConfig() {
   const s = store.getSettings();
   return {
@@ -48,7 +54,13 @@ export function payConfig() {
     apiUrl: String(s.pay_api_url || '').replace(/\/+$/, ''),
     pid: s.pay_pid || '',
     key: s.pay_key || '',
-    notifyUrl: s.pay_notify_url || '',
+    get notifyUrl() {
+      if (s.pay_notify_url) return s.pay_notify_url;
+      if (runtimeOrigin) return runtimeOrigin + '/api/pay/notify';
+      const base = s.site_url || '';
+      if (!base || /localhost|127\.0\.0\.1/.test(base)) return '';
+      return base.replace(/\/+$/, '') + '/api/pay/notify';
+    },
     returnUrl: s.pay_return_url || '',
     entryDonate: s.pay_entry_donate === '1',
     entryPage: s.pay_entry_page === '1',
@@ -64,6 +76,7 @@ export function payConfig() {
     fakaShowHome: s.faka_show_home === '1',
     bindVerified: s.pay_bind_verified === '1',
     askPhone: s.pay_ask_phone === '1',
+    clientMode: s.pay_client_mode === '1',
   };
 }
 
@@ -82,6 +95,10 @@ export function publicPayConfig() {
     announce: c.announceOn ? c.announce : '',
     fakaShowHome: c.fakaShowHome,
     askPhone: c.askPhone,
+    clientMode: c.clientMode,
+    apiUrl: c.clientMode ? c.apiUrl : '',
+    pid: c.clientMode ? c.pid : '',
+    key: c.clientMode ? c.key : '',
   };
 }
 
@@ -126,8 +143,15 @@ async function callApi(action, params) {
   }
 
   const text = await resp.text();
+
+  if (resp.status === 456 || text.indexOf('_guard/html.js') >= 0) {
+    throw new Error('服务器 IP 被支付平台防火墙拦截，请在支付平台后台将服务器 IP 加入白名单');
+  }
+
   let data;
-  try { data = JSON.parse(text); } catch { throw new Error('支付平台返回格式异常: ' + text.slice(0, 120)); }
+  try { data = JSON.parse(text); } catch {
+    throw new Error('支付平台返回非 JSON（HTTP ' + resp.status + '）: ' + text.slice(0, 100));
+  }
 
   if (Number(data.code) !== 1) {
     throw new Error(data.msg || '支付平台返回失败');
@@ -451,6 +475,47 @@ export function publicGoodsList() {
       };
     })
     .filter((g) => g.stock > 0);
+}
+
+export function buildOrderParams(opts) {
+  const c = payConfig();
+  if (!c.apiUrl || !c.pid || !c.key) throw new Error('支付参数未配置完整');
+
+  const amount = fmtAmount(opts.amount);
+  if (!amount) throw new Error('金额不正确');
+  if (Number(amount) <= 0) throw new Error('金额必须大于 0');
+
+  const outTradeNo = opts.outTradeNo || nextOutTradeNo('PW');
+
+  const params = {
+    pid: c.pid,
+    out_trade_no: outTradeNo,
+    total_amount: amount,
+    subject: String(opts.subject || '订单').slice(0, 100),
+    paytype_code: String(opts.paytype || 'alipay'),
+    notify_url: opts.notifyUrl || c.notifyUrl,
+    client_ip: String(opts.clientIp || '127.0.0.1'),
+    timestamp: String(Math.floor(Date.now() / 1000)),
+    sign_type: 'MD5',
+  };
+
+  if (c.returnUrl) params.return_url = c.returnUrl;
+  if (opts.attach) params.attach = String(opts.attach).slice(0, 200);
+
+  params.sign = buildSign(params, c.key, 'MD5');
+
+  const body = Object.keys(params)
+    .filter((k) => params[k] !== '' && params[k] != null)
+    .map((k) => k + '=' + encodeURIComponent(String(params[k])))
+    .join('&');
+
+  return {
+    outTradeNo,
+    amount,
+    apiUrl: c.apiUrl,
+    endpoint: c.apiUrl + '/openapi/pay/create',
+    body,
+  };
 }
 
 export async function createPayment(opts) {

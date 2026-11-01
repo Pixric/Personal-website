@@ -81,6 +81,7 @@
     if ($('payEntryPage')) $('payEntryPage').checked = !!p.entry_page;
     if ($('fakaShowHome')) $('fakaShowHome').checked = !!p.faka_show_home;
     if ($('askPhone')) $('askPhone').checked = !!p.ask_phone;
+    if ($('payClientMode')) $('payClientMode').checked = !!p.client_mode;
     if ($('announceOn')) $('announceOn').checked = !!p.announce_on;
     if ($('announceText')) $('announceText').value = p.announce_text || '';
     if ($('donateTitle')) $('donateTitle').value = p.donate_title || '';
@@ -360,6 +361,7 @@
         };
         var key = $('payKey').value.trim();
         if (key) body.pay_key = key;
+        if ($('payClientMode')) body.pay_client_mode = $('payClientMode').checked;
 
         btn.disabled = true;
         msg(el, '保存中…');
