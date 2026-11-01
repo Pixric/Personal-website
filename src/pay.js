@@ -81,6 +81,7 @@ export function payConfig() {
     bindVerified: s.pay_bind_verified === '1',
     askPhone: s.pay_ask_phone === '1',
     clientMode: s.pay_client_mode === '1',
+    supportText: s.pay_support_text || '',
   };
 }
 
@@ -100,7 +101,7 @@ export function publicPayConfig() {
     fakaShowHome: c.fakaShowHome,
     askPhone: c.askPhone,
     clientMode: c.clientMode,
-    support_text: s.pay_support_text || '',
+    support_text: c.supportText || '',
     apiUrl: c.clientMode ? c.apiUrl : '',
     pid: c.clientMode ? c.pid : '',
     key: c.clientMode ? c.key : '',
